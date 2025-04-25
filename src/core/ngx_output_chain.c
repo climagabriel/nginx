@@ -381,7 +381,11 @@ ngx_output_chain_align_file_buf(ngx_output_chain_ctx_t *ctx, off_t bsize)
     size_t      size;
     ngx_buf_t  *in;
 
-    in = ctx->in->buf;
+    in = ctx->in->buf; /*I think this is where I should create the first temp buff that from the current file pos up to the closest alignment boundary */
+
+    if (in->file_pos) {
+        
+    }
 
     if (in->file == NULL || !in->file->directio) {
         return NGX_DECLINED;
@@ -519,7 +523,7 @@ ngx_output_chain_copy_buf(ngx_output_chain_ctx_t *ctx)
 
 #if (NGX_SENDFILE_LIMIT)
 
-    if (src->in_file && src->file_pos >= NGX_SENDFILE_LIMIT) {
+    if (src->in_file && src->file_pos >= NGX_SENDFILE_LIMIT) {`
         sendfile = 0;
     }
 

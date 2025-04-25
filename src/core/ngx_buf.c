@@ -312,3 +312,37 @@ ngx_chain_update_sent(ngx_chain_t *in, off_t sent)
 
     return in;
 }
+
+ngx_buf_t *
+ngx_create_temp_aligned_buf(ngx_pool_t *pool, size_t size, size_t alignment)
+{
+    ngx_buf_t *b;
+
+    b = ngx_calloc_buf(pool);
+    if (b == NULL) {
+        return NULL;
+    }
+
+    b->start = ngx_pmemalign(pool, size, alignment);
+    if (b->start == NULL) {
+        return NULL;
+    }
+
+    /*
+     * set by ngx_calloc_buf():
+     *
+     *     b->file_pos = 0;
+     *     b->file_last = 0;
+     *     b->file = NULL;
+     *     b->shadow = NULL;
+     *     b->tag = 0;
+     *     and flags
+     */
+
+    b->pos = b->start;
+    b->last = b->start;
+    b->end = b->last + size;
+    b->temporary = 1;
+
+    return b;
+}

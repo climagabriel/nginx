@@ -353,7 +353,7 @@ ngx_http_file_cache_open(ngx_http_request_t *r)
     of.valid = clcf->open_file_cache_valid;
     of.min_uses = clcf->open_file_cache_min_uses;
     of.events = clcf->open_file_cache_events;
-    of.directio = NGX_OPEN_FILE_DIRECTIO_OFF;
+    of.directio = clcf->directio;
     of.read_ahead = clcf->read_ahead;
 
     if (ngx_open_cached_file(clcf->open_file_cache, &c->file.name, &of, r->pool)
@@ -375,6 +375,18 @@ ngx_http_file_cache_open(ngx_http_request_t *r)
         }
     }
 
+    if (of.directio <= of.size) {
+        if (ngx_directio_on(of.fd) == NGX_FILE_ERROR) {
+            ngx_log_error(NGX_LOG_ALERT, r->connection->log, ngx_errno,
+                          ngx_directio_on_n " \"%V\" failed", &c->file.name);
+        } else {
+            of.is_directio = 1;             /*size must be a multiple of alignment */
+            int ceil_quotient = (clcf->directio_alignment + c->body_start - 1) / clcf->directio_alignment;
+            int bufsize = ceil_quotient * clcf->directio_alignment;
+            c->buf = ngx_create_temp_aligned_buf(r->pool, bufsize, clcf->directio_alignment);
+        }
+    }
+
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "http file cache fd: %d", of.fd);
 
@@ -384,9 +396,11 @@ ngx_http_file_cache_open(ngx_http_request_t *r)
     c->length = of.size;
     c->fs_size = (of.fs_size + cache->bsize - 1) / cache->bsize;
 
-    c->buf = ngx_create_temp_buf(r->pool, c->body_start);
-    if (c->buf == NULL) {
-        return NGX_ERROR;
+    if (!of.is_directio) { //TODO: is this really the best conditional?
+        c->buf = ngx_create_temp_buf(r->pool, c->body_start);
+        if (c->buf == NULL) {
+            return NGX_ERROR;
+        }
     }
 
     return ngx_http_file_cache_read(r, c);

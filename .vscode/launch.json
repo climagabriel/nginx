@@ -1,0 +1,40 @@
+{
+    "name": "(gdb) Attach GDB-Server",
+    "type": "cppdbg",
+    "request": "attach",
+    "MIMode": "gdb",
+    "miDebuggerPath": "/usr/bin/gdb",
+    "useExtendedRemote": true,
+    "configurations": [
+        {
+            "name": "(gdb) attach",
+            "type": "cppdbg",
+            "request": "attach",
+            "program": "/root/nginx/objs/nginx",
+            "processId": "${command:pickProcess}",
+            "MIMode": "gdb",
+        },
+        {
+            //"sourceFileMap": { "/__w/nginx-gcdn/nginx": "/root/nginx-gcdn/objs/nginx"},
+            "name": "(gdb) Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/root/nginx/objs/nginx",
+            //"args": ["-c", "/opt/nginx/vts-locking.conf"],
+            //"args": ["-c", "/opt/nginx/dyn-log-level.conf"],
+            //"args": ["-c", "/etc/nginx/nginx.conf"],
+            //"args": ["-c", "/opt/nginx/minimal-return.conf"],
+            //"args": ["-c", "/opt/nginx/limit_conn_zone.conf"],
+            //"args": ["-c", "/opt/nginx/proxy_cache_lock_timer.conf"],
+            //"args": ["-c", "/opt/nginx/proxy_cache_io_error.conf"],
+            //"args": ["-c","/opt/nginx/ssl_client_hello_by_lua.conf"],
+            "args": ["-c","/opt/nginx/directio.conf"],
+            "stopAtEntry": false,
+            "cwd": "/root/nginx/",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": []
+        }
+    ]
+}
