@@ -121,6 +121,8 @@ static u_char *ngx_http_log_msec(ngx_http_request_t *r, u_char *buf,
     ngx_http_log_op_t *op);
 static u_char *ngx_http_log_request_time(ngx_http_request_t *r, u_char *buf,
     ngx_http_log_op_t *op);
+static u_char *ngx_http_log_request_time_usec(ngx_http_request_t *r, u_char *buf,
+        ngx_http_log_op_t *op);
 static u_char *ngx_http_log_status(ngx_http_request_t *r, u_char *buf,
     ngx_http_log_op_t *op);
 static u_char *ngx_http_log_bytes_sent(ngx_http_request_t *r, u_char *buf,
@@ -245,6 +247,8 @@ static ngx_http_log_var_t  ngx_http_log_vars[] = {
                           ngx_http_log_body_bytes_sent },
     { ngx_string("request_length"), NGX_SIZE_T_LEN,
                           ngx_http_log_request_length },
+    { ngx_string("request_time_mcs"), NGX_TIME_T_LEN + 4,
+                            ngx_http_log_request_time_usec },
 
     { ngx_null_string, 0, NULL }
 };
@@ -848,6 +852,26 @@ ngx_http_log_request_time(ngx_http_request_t *r, u_char *buf,
     ms = ngx_max(ms, 0);
 
     return ngx_sprintf(buf, "%T.%03M", (time_t) ms / 1000, ms % 1000);
+}
+
+
+static u_char *
+ngx_http_log_request_time_usec(ngx_http_request_t *r, u_char *buf,
+    ngx_http_log_op_t *op)
+{
+    time_t           usec, sec;
+    struct timeval  tp;
+
+    ngx_gettimeofday(&tp);
+
+    sec = tp.tv_sec - r->start_sec;
+    usec = tp.tv_usec - r->start_usec;
+    if (usec < 0) {
+        sec --;
+        usec += 1000000;
+    }
+
+    return ngx_sprintf(buf, "%T.%06M", sec, usec);
 }
 
 

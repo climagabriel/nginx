@@ -2478,6 +2478,7 @@ ngx_http_subrequest(ngx_http_request_t *r,
     tp = ngx_timeofday();
     sr->start_sec = tp->sec;
     sr->start_msec = tp->msec;
+    sr->start_usec = ngx_current_usec;
 
     r->main->count++;
 

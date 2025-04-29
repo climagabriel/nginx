@@ -638,6 +638,7 @@ ngx_http_alloc_request(ngx_connection_t *c)
     tp = ngx_timeofday();
     r->start_sec = tp->sec;
     r->start_msec = tp->msec;
+    r->start_usec = ngx_current_usec;
 
     r->method = NGX_HTTP_UNKNOWN;
     r->http_version = NGX_HTTP_VERSION_10;

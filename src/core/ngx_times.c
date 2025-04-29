@@ -33,6 +33,7 @@ volatile ngx_str_t       ngx_cached_http_time;
 volatile ngx_str_t       ngx_cached_http_log_time;
 volatile ngx_str_t       ngx_cached_http_log_iso8601;
 volatile ngx_str_t       ngx_cached_syslog_time;
+volatile time_t          ngx_current_usec;
 
 #if !(NGX_WIN32)
 
@@ -95,6 +96,7 @@ ngx_time_update(void)
 
     sec = tv.tv_sec;
     msec = tv.tv_usec / 1000;
+    ngx_current_usec = tv.tv_usec;
 
     ngx_current_msec = ngx_monotonic_time(sec, msec);
 
