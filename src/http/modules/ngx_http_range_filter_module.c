@@ -379,7 +379,7 @@ ngx_http_range_parse(ngx_http_request_t *r, ngx_http_range_filter_ctx_t *ctx,
 
             range->start = start;
             range->end = end;
-            range->bytes_lacking = NGX_MAX_OFF_T_VALUE;
+            range->bytes_lacking = 0;
             range->fulfilled = 0;
 
             if (size > NGX_MAX_OFF_T_VALUE - (end - start)) {
@@ -926,6 +926,8 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
             b->file_last = buf->file_pos + range[i].end;
             if (buf->file_last > b->file_last) {
                 range[i].fulfilled = 1;
+            } else {
+                b->file_last = b->file_last - range[i].bytes_lacking;
             }
         }
 
@@ -955,8 +957,13 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
     }
 
     b->temporary = 1;
-    if (0) {
-        b->last_buf = 1;
+    b->last_buf = 1;
+
+    for (i = 0; i < ctx->ranges.nelts; i++) {
+        if (!range[i].fulfilled) {
+            b->last_buf = 0;
+            break;
+        }
     }
 
     b->pos = ngx_pnalloc(r->pool, sizeof(CRLF "--") - 1 + NGX_ATOMIC_T_LEN
