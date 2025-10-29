@@ -28,7 +28,8 @@
  * ... header ...
  * "Content-Type: multipart/byteranges; boundary=0123456789" CRLF
  * CRLF
- * CRLF
+ * CRLF * "Content-Type: image/jpeg" CRLF
+
  * "--0123456789" CRLF
  * "Content-Type: image/jpeg" CRLF
  * "Content-Range: bytes START0-END0/SIZE" CRLF
@@ -36,7 +37,6 @@
  * ... data ...
  * CRLF
  * "--0123456789" CRLF
- * "Content-Type: image/jpeg" CRLF
  * "Content-Range: bytes START1-END1/SIZE" CRLF
  * CRLF
  * ... data ...
@@ -49,6 +49,7 @@ typedef struct {
     off_t        start;
     off_t        end;
     off_t        bytes_lacking;
+    off_t        fulfilled;
     ngx_str_t    content_range;
 } ngx_http_range_t;
 
@@ -378,6 +379,8 @@ ngx_http_range_parse(ngx_http_request_t *r, ngx_http_range_filter_ctx_t *ctx,
 
             range->start = start;
             range->end = end;
+            range->bytes_lacking = NGX_MAX_OFF_T_VALUE;
+            range->fulfilled = 0;
 
             if (size > NGX_MAX_OFF_T_VALUE - (end - start)) {
                 return NGX_HTTP_RANGE_NOT_SATISFIABLE;
@@ -682,7 +685,8 @@ ngx_http_range_test_overlapped(ngx_http_request_t *r,
     ngx_http_range_t  *range;
 
     if (ctx->offset) {
-        goto overlapped;
+        //goto overlapped;
+        ctx->offset = 0;
     }
 
     buf = in->buf;
@@ -702,8 +706,9 @@ ngx_http_range_test_overlapped(ngx_http_request_t *r,
                            "range %*s lacking %O", range[i].content_range.len-4,
                                                    range[i].content_range.data,
                                                    range[i].bytes_lacking);
-            } else {
-                range[i].bytes_lacking = 0;
+            }
+            else {
+            //    range[i].bytes_lacking = 0;
             }
         }
     }
@@ -858,7 +863,7 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
     range = ctx->ranges.elts;
 
     for (i = 0; i < ctx->ranges.nelts; i++) {
-
+        if (range[i].fulfilled == 1) { continue; }
         /*
          * The boundary header of the range:
          * CRLF
@@ -919,6 +924,9 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
         if (buf->in_file) {
             b->file_pos = buf->file_pos + range[i].start;
             b->file_last = buf->file_pos + range[i].end;
+            if (buf->file_last > b->file_last) {
+                range[i].fulfilled = 1;
+            }
         }
 
         if (ngx_buf_in_memory(buf)) {
@@ -947,7 +955,9 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
     }
 
     b->temporary = 1;
-    b->last_buf = 1;
+    if (0) {
+        b->last_buf = 1;
+    }
 
     b->pos = ngx_pnalloc(r->pool, sizeof(CRLF "--") - 1 + NGX_ATOMIC_T_LEN
                                   + sizeof("--" CRLF) - 1);
