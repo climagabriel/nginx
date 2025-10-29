@@ -692,8 +692,11 @@ ngx_http_range_test_overlapped(ngx_http_request_t *r,
 
         range = ctx->ranges.elts;
         for (i = 0; i < ctx->ranges.nelts; i++) {
-            if (start > range[i].start || last < range[i].end) {
+            if (start > range[i].start) {
                 goto overlapped;
+            }
+            if (last < range[i].end) {
+
             }
         }
     }
