@@ -51,6 +51,8 @@ typedef struct {
     off_t        bytes_lacking;
     off_t        fulfilled;
     ngx_str_t    content_range;
+    ngx_chain_t *hcl;
+    ngx_chain_t *rcl;
 } ngx_http_range_t;
 
 
@@ -928,6 +930,19 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
                 range[i].fulfilled = 1;
             } else {
                 b->file_last = b->file_last - range[i].bytes_lacking;
+                range[i].start = 0;
+                range[i].end = range[i].bytes_lacking;
+                range[i].hcl = hcl;
+                range[i].rcl = rcl;
+                dcl = ngx_alloc_chain_link(r->pool);
+                if (dcl == NULL) {
+                    return NGX_ERROR;
+                }
+
+                dcl->buf = b;
+                dcl->next = NULL;
+                *ll = dcl;
+                return ngx_http_next_body_filter(r, out);
             }
         }
 
@@ -951,6 +966,13 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
 
     /* the last boundary CRLF "--0123456789--" CRLF  */
 
+    for (i = 0; i < ctx->ranges.nelts; i++) {
+        if (!range[i].fulfilled) {
+            //b->last_buf = 0;
+            return ngx_http_next_body_filter(r, out);
+        }
+    }
+
     b = ngx_calloc_buf(r->pool);
     if (b == NULL) {
         return NGX_ERROR;
@@ -959,12 +981,6 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
     b->temporary = 1;
     b->last_buf = 1;
 
-    for (i = 0; i < ctx->ranges.nelts; i++) {
-        if (!range[i].fulfilled) {
-            b->last_buf = 0;
-            break;
-        }
-    }
 
     b->pos = ngx_pnalloc(r->pool, sizeof(CRLF "--") - 1 + NGX_ATOMIC_T_LEN
                                   + sizeof("--" CRLF) - 1);
