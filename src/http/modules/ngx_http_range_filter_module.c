@@ -48,6 +48,7 @@
 typedef struct {
     off_t        start;
     off_t        end;
+    off_t        bytes_lacking;
     ngx_str_t    content_range;
 } ngx_http_range_t;
 
@@ -696,7 +697,13 @@ ngx_http_range_test_overlapped(ngx_http_request_t *r,
                 goto overlapped;
             }
             if (last < range[i].end) {
-
+                range[i].bytes_lacking = range[i].end - last;
+                    ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
+                           "range %*s lacking %O", range[i].content_range.len-4,
+                                                   range[i].content_range.data,
+                                                   range[i].bytes_lacking);
+            } else {
+                range[i].bytes_lacking = 0;
             }
         }
     }
