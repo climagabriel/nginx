@@ -671,7 +671,7 @@ ngx_http_range_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
     }
 
     if (ngx_http_range_test_overlapped(r, ctx, in) != NGX_OK) {
-        return NGX_ERROR;
+//        return NGX_ERROR;
     }
 
     return ngx_http_range_multipart_body(r, ctx, in);
@@ -688,7 +688,8 @@ ngx_http_range_test_overlapped(ngx_http_request_t *r,
     ngx_http_range_t  *range;
 
     if (ctx->offset) {
-        goto overlapped;
+        //goto overlapped;
+//        ctx->offset = 0;
     }
 
     buf = in->buf;
@@ -699,6 +700,9 @@ ngx_http_range_test_overlapped(ngx_http_request_t *r,
 
         range = ctx->ranges.elts;
         for (i = 0; i < ctx->ranges.nelts; i++) {
+            if (range[i].fulfilled) {
+                continue;
+            }
             if (start > range[i].start) {
                 goto overlapped;
             }
@@ -858,6 +862,16 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
     ngx_uint_t         i;
     ngx_chain_t       *out, *hcl, *rcl, *dcl, **ll;
     ngx_http_range_t  *range;
+    ngx_http_range_filter_ctx_t  *mctx;
+
+
+    if (r != r->main) {
+        mctx = ngx_http_get_module_ctx(r->main,
+                                       ngx_http_range_body_filter_module);
+        if (mctx) {
+            ctx = mctx;
+        }
+    }
 
     ll = &out;
     buf = in->buf;
@@ -948,6 +962,8 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
 
         dcl->buf = b;
 
+        dcl->next = NULL;
+
         *ll = hcl;
         hcl->next = rcl;
         rcl->next = dcl;
@@ -999,11 +1015,18 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
     }
 
     if (ctx->runs) {
+        ngx_chain_t **lastl;
         hcl = ctx->final_boundary;
-        out = ctx->saved_out;
-        ll = &out;
+        dcl->next= hcl;
 
-        *ll = hcl;
+        out = ctx->saved_out;
+
+        lastl = &out->next;
+        while ((**lastl).next) {
+            lastl = &(*lastl)->next;
+        }
+        (**lastl).next = dcl;
+
     }
 
     ctx->runs++;
