@@ -1017,31 +1017,38 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
     }
 
     if (ctx->runs) {
-        ngx_chain_t **lastl;
+        //ngx_chain_t **lastl;
         hcl = ctx->final_boundary;
         dcl->next= hcl;
 
-        out = ctx->saved_out;
+        out = dcl; /* out will be appened to r->out / r->main->out 
+                      in ngx_http_write_filter */
+        //out = ctx->saved_out;
 
-        lastl = &out->next;
-        while ((**lastl).next) {
-            lastl = &(*lastl)->next;
-        }
-        (**lastl).next = dcl;
+        //lastl = &out->next;
+        //while ((**lastl).next) {
+        //    lastl = &(*lastl)->next;
+        //}
+        //(**lastl).next = dcl;
 
+        //r->out = NULL;
+        //r->main->out = NULL;
     }
 
     ctx->runs++;
 
     if (r != r->main) {
+        fprintf(stderr, "r != r->main\n");
         ngx_print_chainlink_to_stderr(r->main->out);
     }
 
     if (r->out) {
+        fprintf(stderr, "r->out\n");
         ngx_print_chainlink_to_stderr(r->out);
     }
 
     if (out) {
+        fprintf(stderr, "OUT\n");
         ngx_print_chainlink_to_stderr(out);
     }
 
