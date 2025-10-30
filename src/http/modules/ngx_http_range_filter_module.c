@@ -860,7 +860,8 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
     buf = in->buf;
     range = ctx->ranges.elts;
 
-    for (i = 0; i < ctx->ranges.nelts; i++) {
+    i = 0;
+    for (; i < ctx->ranges.nelts; i++) {
 
         /*
          * The boundary header of the range:
@@ -956,6 +957,9 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
         hcl->next = rcl;
         rcl->next = dcl;
         ll = &dcl->next;
+        if (!range[i].fulfilled) {
+            break;
+        }
     }
 
     /* the last boundary CRLF "--0123456789--" CRLF  */
@@ -987,7 +991,9 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
     hcl->buf = b;
     hcl->next = NULL;
 
-    *ll = hcl;
+    //if (range[i].fulfilled) {
+        *ll = hcl;
+    //}
 
     if (r != r->main) {
         ngx_print_chainlink_to_stderr(r->main->out);
