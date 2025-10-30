@@ -153,7 +153,7 @@ ngx_http_range_header_filter(ngx_http_request_t *r)
 {
     time_t                        if_range_time;
     ngx_str_t                    *if_range, *etag;
-//    ngx_uint_t                    ranges;
+    ngx_uint_t                    ranges;
     ngx_http_core_loc_conf_t     *clcf;
     ngx_http_range_filter_ctx_t  *ctx;
 
@@ -229,9 +229,9 @@ parse:
 
     ctx->offset = r->headers_out.content_offset;
 
-//    ranges = r->single_range ? 1 : clcf->max_ranges;
+    ranges = r->single_range ? 1 : clcf->max_ranges;
 
-    switch (ngx_http_range_parse(r, ctx, clcf->max_ranges)) {
+    switch (ngx_http_range_parse(r, ctx, ranges)) {
 
     case NGX_OK:
         ngx_http_set_ctx(r, ctx, ngx_http_range_body_filter_module);
