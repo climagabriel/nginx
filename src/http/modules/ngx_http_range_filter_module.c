@@ -48,8 +48,9 @@
 typedef struct {
     off_t        start;
     off_t        end;
-    off_t        bytes_lacking;
     ngx_str_t    content_range;
+    off_t        bytes_lacking;
+    off_t        fulfilled;
 } ngx_http_range_t;
 
 
@@ -57,6 +58,9 @@ typedef struct {
     off_t        offset;
     ngx_str_t    boundary_header;
     ngx_array_t  ranges;
+    ngx_chain_t *final_boundary;
+    ngx_chain_t *saved_out;
+    off_t        runs;
 } ngx_http_range_filter_ctx_t;
 
 
@@ -378,6 +382,8 @@ ngx_http_range_parse(ngx_http_request_t *r, ngx_http_range_filter_ctx_t *ctx,
 
             range->start = start;
             range->end = end;
+            range->bytes_lacking = 0;
+            range->fulfilled = 0;
 
             if (size > NGX_MAX_OFF_T_VALUE - (end - start)) {
                 return NGX_HTTP_RANGE_NOT_SATISFIABLE;
@@ -919,6 +925,15 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
         if (buf->in_file) {
             b->file_pos = buf->file_pos + range[i].start;
             b->file_last = buf->file_pos + range[i].end;
+
+            if (buf->file_last >= b->file_last) {
+                range[i].fulfilled = 1;
+            } else {
+                b->file_last = b->file_last - range[i].bytes_lacking;
+                range[i].start = 0;
+                range[i].end = range[i].bytes_lacking;
+            }
+
         }
 
         if (ngx_buf_in_memory(buf)) {
@@ -965,11 +980,33 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
         return NGX_ERROR;
     }
 
-    hcl->buf = b;
-    hcl->next = NULL;
 
-    *ll = hcl;
+    for (i = 0; i < ctx->ranges.nelts; i++) {
+        if (!range[i].fulfilled) {
+            hcl->buf = b;
+            hcl->next = NULL;
 
+            ctx->final_boundary = hcl;
+            ctx->saved_out = out;
+        }
+    }
+
+    if (ctx->runs == 0 && ctx->saved_out == NULL)  {
+        hcl->buf = b;
+        hcl->next = NULL;
+
+        *ll = hcl;
+    }
+
+    if (ctx->runs) {
+        hcl = ctx->final_boundary;
+        out = ctx->saved_out;
+        ll = &out;
+
+        *ll = hcl;
+    }
+
+    ctx->runs++;
     return ngx_http_next_body_filter(r, out);
 }
 
