@@ -691,8 +691,8 @@ ngx_http_range_test_overlapped(ngx_http_request_t *r,
     buf = in->buf;
 
     if (!buf->last_buf) {
-        start = ctx->offset;
-        last = ctx->offset + ngx_buf_size(buf);
+        start = ctx->offset; /* this line is never executed if offset != 0  */
+        last = ctx->offset + ngx_buf_size(buf); /* so why the fuck do this? */
 
         range = ctx->ranges.elts;
         for (i = 0; i < ctx->ranges.nelts; i++) {
