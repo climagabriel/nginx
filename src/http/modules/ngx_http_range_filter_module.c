@@ -719,6 +719,17 @@ overlapped:
 
     ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
                   "range in overlapped buffers");
+    if (r != r->main) {
+        ngx_print_chainlink_to_stderr(r->main->out);
+    }
+
+    if (r->out) {
+        ngx_print_chainlink_to_stderr(r->out);
+    }
+
+    if (in) {
+        ngx_print_chainlink_to_stderr(in);
+    }
 
     return NGX_ERROR;
 }
