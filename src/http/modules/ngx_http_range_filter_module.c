@@ -44,6 +44,7 @@
  * "--0123456789--" CRLF
  */
 
+void ngx_print_chainlink_to_stderr(ngx_chain_t *chain);
 
 typedef struct {
     off_t        start;
@@ -970,6 +971,18 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
 
     *ll = hcl;
 
+    if (r != r->main) {
+        ngx_print_chainlink_to_stderr(r->main->out);
+    }
+
+    if (r->out) {
+        ngx_print_chainlink_to_stderr(r->out);
+    }
+
+    if (out) {
+        ngx_print_chainlink_to_stderr(out);
+    }
+
     return ngx_http_next_body_filter(r, out);
 }
 
@@ -991,4 +1004,32 @@ ngx_http_range_body_filter_init(ngx_conf_t *cf)
     ngx_http_top_body_filter = ngx_http_range_body_filter;
 
     return NGX_OK;
+}
+
+void ngx_print_chainlink_to_stderr(ngx_chain_t *chain) {
+    int i = 0;
+    ngx_chain_t *outchain;
+    outchain = chain;
+    while (outchain) {
+        fprintf(stderr, " Outchain link #%d: ", i++);
+        if (outchain->buf->memory) {
+            int x = outchain->buf->last - outchain->buf->pos;
+            fprintf(stderr, "Mem buf %d chars: \'%.*s\'",
+                                                  x, x, outchain->buf->pos);
+        }
+        if (outchain->buf->temporary) {
+            int x = outchain->buf->last - outchain->buf->pos;
+            fprintf(stderr, "Temp buf %d chars: \'%.*s\'",
+                                                  x, x, outchain->buf->pos);
+        }
+        if (outchain->buf->file) {
+            fprintf(stderr, "File %.*s %ld %ld\n",
+                                      (int) outchain->buf->file->name.len,
+                                           outchain->buf->file->name.data,
+                                           outchain->buf->file_pos,
+                                           outchain->buf->file_last);
+        }
+        fprintf(stderr, "\n\n");
+        outchain = outchain->next;
+    }
 }
