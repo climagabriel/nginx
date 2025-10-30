@@ -52,6 +52,7 @@ typedef struct {
     off_t        fulfilled;
     ngx_str_t    content_range;
     off_t        dcl_incomplete;
+    ngx_chain_t  *saved_out;
 } ngx_http_range_t;
 
 
@@ -857,7 +858,7 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
 {
     ngx_buf_t         *b, *buf;
     ngx_uint_t         i;
-    ngx_chain_t       *out, *hcl, *rcl, *dcl, **ll;
+    ngx_chain_t       *out, *hcl, *rcl, *dcl, **ll, *cl;
     ngx_http_range_t  *range;
 
     ll = &out;
@@ -950,6 +951,7 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
                 rcl->next = dcl;
                 ll = &dcl->next;
                 dcl->next = NULL;
+                range[i].saved_out = out;
                 return ngx_http_next_body_filter(r, out);
             }
 
@@ -973,8 +975,12 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
             rcl->next = dcl;
             ll = &dcl->next;
         } else {
-            dcl->next = NULL;
-            *ll = dcl;
+            *ll = range[i].saved_out;
+            cl = range[i].saved_out;
+            while (cl->next) {
+                cl = cl->next;
+            }
+            cl->next = dcl;
         }
     }
 
