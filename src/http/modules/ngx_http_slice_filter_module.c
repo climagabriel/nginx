@@ -187,7 +187,7 @@ ngx_http_slice_header_filter(ngx_http_request_t *r)
 
     r->allow_ranges = 1;
     r->subrequest_ranges = 1;
-    r->single_range = 1;
+    //r->single_range = 1;
 
     rc = ngx_http_next_header_filter(r);
 
