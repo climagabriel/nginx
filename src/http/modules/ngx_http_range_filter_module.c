@@ -51,8 +51,7 @@ typedef struct {
     off_t        bytes_lacking;
     off_t        fulfilled;
     ngx_str_t    content_range;
-    ngx_chain_t *hcl;
-    ngx_chain_t *rcl;
+    off_t        dcl_incomplete;
 } ngx_http_range_t;
 
 
@@ -383,6 +382,7 @@ ngx_http_range_parse(ngx_http_request_t *r, ngx_http_range_filter_ctx_t *ctx,
             range->end = end;
             range->bytes_lacking = 0;
             range->fulfilled = 0;
+            range->dcl_incomplete = 0;
 
             if (size > NGX_MAX_OFF_T_VALUE - (end - start)) {
                 return NGX_HTTP_RANGE_NOT_SATISFIABLE;
@@ -883,31 +883,33 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
         b->pos = ctx->boundary_header.data;
         b->last = ctx->boundary_header.data + ctx->boundary_header.len;
 
-        hcl = ngx_alloc_chain_link(r->pool);
-        if (hcl == NULL) {
-            return NGX_ERROR;
-        }
+        if (range[i].dcl_incomplete == 0) {
+            hcl = ngx_alloc_chain_link(r->pool);
+            if (hcl == NULL) {
+                return NGX_ERROR;
+            }
 
-        hcl->buf = b;
+            hcl->buf = b;
 
 
         /* "SSSS-EEEE/TTTT" CRLF CRLF */
 
-        b = ngx_calloc_buf(r->pool);
-        if (b == NULL) {
-            return NGX_ERROR;
+            b = ngx_calloc_buf(r->pool);
+            if (b == NULL) {
+                return NGX_ERROR;
+            }
+
+            b->temporary = 1;
+            b->pos = range[i].content_range.data;
+            b->last = range[i].content_range.data + range[i].content_range.len;
+
+            rcl = ngx_alloc_chain_link(r->pool);
+            if (rcl == NULL) {
+                return NGX_ERROR;
+            }
+
+            rcl->buf = b;
         }
-
-        b->temporary = 1;
-        b->pos = range[i].content_range.data;
-        b->last = range[i].content_range.data + range[i].content_range.len;
-
-        rcl = ngx_alloc_chain_link(r->pool);
-        if (rcl == NULL) {
-            return NGX_ERROR;
-        }
-
-        rcl->buf = b;
 
 
         /* the range data */
@@ -926,24 +928,31 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
         if (buf->in_file) {
             b->file_pos = buf->file_pos + range[i].start;
             b->file_last = buf->file_pos + range[i].end;
+
             if (buf->file_last > b->file_last) {
                 range[i].fulfilled = 1;
             } else {
                 b->file_last = b->file_last - range[i].bytes_lacking;
                 range[i].start = 0;
                 range[i].end = range[i].bytes_lacking;
-                range[i].hcl = hcl;
-                range[i].rcl = rcl;
+
                 dcl = ngx_alloc_chain_link(r->pool);
                 if (dcl == NULL) {
                     return NGX_ERROR;
                 }
 
+                range[i].dcl_incomplete = 1;
+
                 dcl->buf = b;
+
+                *ll = hcl;
+                hcl->next = rcl;
+                rcl->next = dcl;
+                ll = &dcl->next;
                 dcl->next = NULL;
-                *ll = dcl;
                 return ngx_http_next_body_filter(r, out);
             }
+
         }
 
         if (ngx_buf_in_memory(buf)) {
@@ -958,20 +967,25 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
 
         dcl->buf = b;
 
-        *ll = hcl;
-        hcl->next = rcl;
-        rcl->next = dcl;
-        ll = &dcl->next;
+        if ((range[i].dcl_incomplete & range[i].fulfilled) != 1) {
+            *ll = hcl;
+            hcl->next = rcl;
+            rcl->next = dcl;
+            ll = &dcl->next;
+        } else {
+            dcl->next = NULL;
+            *ll = dcl;
+        }
     }
 
     /* the last boundary CRLF "--0123456789--" CRLF  */
 
-    for (i = 0; i < ctx->ranges.nelts; i++) {
-        if (!range[i].fulfilled) {
-            //b->last_buf = 0;
-            return ngx_http_next_body_filter(r, out);
-        }
-    }
+//    for (i = 0; i < ctx->ranges.nelts; i++) {
+//        if (!range[i].fulfilled) {
+//            //b->last_buf = 0;
+//            return ngx_http_next_body_filter(r, out);
+//        }
+//    }
 
     b = ngx_calloc_buf(r->pool);
     if (b == NULL) {
