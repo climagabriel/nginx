@@ -51,6 +51,7 @@ typedef struct {
     off_t        end;
     off_t        bytes_lacking;
     ngx_str_t    content_range;
+    unsigned     fulfilled:1;
 } ngx_http_range_t;
 
 
@@ -379,6 +380,7 @@ ngx_http_range_parse(ngx_http_request_t *r, ngx_http_range_filter_ctx_t *ctx,
 
             range->start = start;
             range->end = end;
+            range->fulfilled = 0;
 
             if (size > NGX_MAX_OFF_T_VALUE - (end - start)) {
                 return NGX_HTTP_RANGE_NOT_SATISFIABLE;
@@ -920,6 +922,22 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
         if (buf->in_file) {
             b->file_pos = buf->file_pos + range[i].start;
             b->file_last = buf->file_pos + range[i].end;
+
+            if (buf->file_last >= b->file_last) {
+                range[i].fulfilled = 1;
+            } else {
+                ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
+                           "range %*s lacking %O (buf - b file last)",
+                           range[i].content_range.len-4,
+                           range[i].content_range.data,
+                           range[i].bytes_lacking,
+                           b->file_last - buf->file_last);
+
+                b->file_last = b->file_last - range[i].bytes_lacking;
+                range[i].start = 0;
+                range[i].end = range[i].bytes_lacking;
+            }
+
         }
 
         if (ngx_buf_in_memory(buf)) {
