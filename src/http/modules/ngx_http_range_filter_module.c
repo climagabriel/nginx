@@ -44,6 +44,8 @@
  * "--0123456789--" CRLF
  */
 
+void ngx_print_chainlink_to_stderr(ngx_http_request_t *r, ngx_chain_t *chain);
+void ngx_print_chainlink(ngx_chain_t *chain);
 
 typedef struct {
     off_t        start;
@@ -836,6 +838,8 @@ ngx_http_range_singlepart_body(ngx_http_request_t *r,
 
     rc = ngx_http_next_body_filter(r, out);
 
+    ngx_print_chainlink_to_stderr(r, out);
+
     while (out) { /*because out was appended to r->out/r->main->out by now*/
         cl = out;
         out = out->next;
@@ -1122,4 +1126,55 @@ ngx_http_range_multipart_append_bounds(ngx_http_request_t *r,
     *ll = hcl;
 
     return ngx_http_next_body_filter(r, out);
+}
+
+void ngx_print_chainlink_to_stderr(ngx_http_request_t *r, ngx_chain_t *chain) {
+
+    static int c = 0;
+    fprintf(stderr, " ########## %d ########## ", c++);
+
+    if (r != r->main) {
+        fprintf(stderr, "r != r->main\n");
+        ngx_print_chainlink(r->main->out);
+    }
+
+    if (r->out) {
+        fprintf(stderr, "r->out\n");
+        ngx_print_chainlink(r->out);
+    }
+
+    if (chain) {
+        fprintf(stderr, "OUT\n");
+        ngx_print_chainlink(chain);
+    }
+}
+
+void ngx_print_chainlink(ngx_chain_t *chain) {
+    ngx_chain_t *outchain;
+    outchain = chain;
+    int i = 0;
+
+    while (outchain) {
+        fprintf(stderr, " Outchain link #%d: ", i++);
+        if (outchain->buf->memory) {
+            int x = outchain->buf->last - outchain->buf->pos;
+            fprintf(stderr, "Mem buf %d chars: \'%.*s\'",
+                                                  x, x, outchain->buf->pos);
+        }
+        if (outchain->buf->temporary) {
+            int x = outchain->buf->last - outchain->buf->pos;
+            fprintf(stderr, "Temp buf %d chars: \'%.*s\'",
+                                                  x, x, outchain->buf->pos);
+        }
+        if (outchain->buf->file) {
+            fprintf(stderr, "File %.*s %ld %ld\n",
+                                      (int) outchain->buf->file->name.len,
+                                           outchain->buf->file->name.data,
+                                           outchain->buf->file_pos,
+                                           outchain->buf->file_last);
+        }
+        fprintf(stderr, "\n\n");
+        outchain = outchain->next;
+    }
+
 }
