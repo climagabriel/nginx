@@ -663,7 +663,7 @@ ngx_http_range_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     if (ctx->ranges.nelts > 1) {
         int rc;
-        //ngx_print_chainlink_to_stderr(r, in);
+        ngx_print_chainlink_to_stderr(r, in);
         rc = ngx_http_range_huinglepart_body(r, ctx, in);
         return rc;
     }
@@ -1077,11 +1077,11 @@ ngx_http_range_huinglepart_body(ngx_http_request_t *r,
 
         size = current_range.end - current_range.start;
 
-            ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
-                    "range: %*s size: %O offset: %O",
-                    current_range.content_range.len-4,
-                    current_range.content_range.data,
-                    size, current_range.range_offset);
+//            ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
+//                    "range: %*s size: %O offset: %O",
+//                    current_range.content_range.len-4,
+//                    current_range.content_range.data,
+//                    size, current_range.range_offset);
 
         if (size > current_range.range_offset) {
 
@@ -1093,9 +1093,18 @@ ngx_http_range_huinglepart_body(ngx_http_request_t *r,
 //                    "range: %*s",
 //                    range->content_range.len-4,
 //                    range->content_range.data);
+
+       ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
+               "range: %*s offset: %O",
+               range->content_range.len-4,
+               range->content_range.data, range->range_offset);
 /*    TODO: find where and how to increment range->range_offset
  *    range->range_offset should be = to
  *    x*slice_size - range.start + y*slice_sie + (z - range.end)
+ */
+
+/*  TODO: find how and why we get the next slice file on next iteration
+ *  Do we need to post the request ourselves?
  *
  */
 
