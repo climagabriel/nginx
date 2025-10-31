@@ -75,8 +75,7 @@ static ngx_int_t ngx_http_range_test_overlapped(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in);
 static ngx_int_t ngx_http_range_singlepart_body(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in);
-static ngx_int_t ngx_http_range_singlepart_body_iter(ngx_http_request_t *r,
-    ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in, ngx_uint_t i);
+
 static ngx_int_t ngx_http_range_multipart_body(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in);
 static ngx_int_t ngx_http_range_multipart_prepend_bounds(ngx_http_request_t *r,
@@ -87,6 +86,9 @@ static ngx_int_t ngx_http_range_multipart_append_final(ngx_http_request_t *r,
 static ngx_int_t ngx_http_range_header_filter_init(ngx_conf_t *cf);
 static ngx_int_t ngx_http_range_body_filter_init(ngx_conf_t *cf);
 
+static ngx_int_t ngx_http_range_singlepart_body_iter(ngx_http_request_t *r,
+        ngx_http_range_filter_ctx_t *ctx, ngx_chain_t **in, ngx_buf_t *inbuf,
+        ngx_http_range_t  *range);
 
 
 static ngx_http_module_t  ngx_http_range_header_filter_module_ctx = {
@@ -673,6 +675,8 @@ ngx_http_range_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     if (ctx->ranges.nelts > 1) {
         ngx_http_range_filter_ctx_t  *mctx;
+        ngx_buf_t *b;
+        b = in->buf;
         if (r != r->main) {
             mctx = ngx_http_get_module_ctx(r->main,
                                            ngx_http_range_body_filter_module);
@@ -686,7 +690,8 @@ ngx_http_range_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
             range = ctx->ranges.elts;
             if (!range[i].bounds_prepended) {
                 ngx_http_range_multipart_prepend_bounds(r, ctx, &in, i);
-                rc = ngx_http_range_singlepart_body_iter(r, ctx, in, i);
+                rc = ngx_http_range_singlepart_body_iter(r, ctx, &in,
+                                                                  b, &range[i]);
                 if (rc == NGX_OK && range[i].fulfilled) {
                     continue;
                 } else {
@@ -878,169 +883,92 @@ ngx_http_range_singlepart_body(ngx_http_request_t *r,
 
 static ngx_int_t
 ngx_http_range_singlepart_body_iter(ngx_http_request_t *r,
-    ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in, ngx_uint_t i)
+        ngx_http_range_filter_ctx_t *ctx, ngx_chain_t **in, ngx_buf_t *inbuf,
+        ngx_http_range_t *range)
 {
     off_t              start, last;
     ngx_int_t          rc;
     ngx_buf_t         *b, *buf;
     ngx_chain_t       *out, *cl, *tl, **ll, **inl, *dcl;
-    ngx_http_range_t  *range;
 
-    out = NULL;
-    ll = &out;
-    range = ctx->ranges.elts;
-    range = &range[i];
+    start = range->offset;
+    last = range->offset + ngx_buf_size(buf);
 
-    for (cl = in; cl; cl = cl->next) {
-        inl = &cl;
-        buf = cl->buf;
-        if (buf->file == NULL) {
-            continue; /*skip prepended boundary bufs*/
+    /*
+     * you can't just use this buf it may be needed
+     * by some other range, so I'll pull some logic in from multirange
+     */
+
+    b = ngx_calloc_buf(r->pool);
+    if (b == NULL) {
+        return NGX_ERROR;
+    }
+
+    b->in_file = buf->in_file;
+    b->temporary = buf->temporary;
+    b->memory = buf->memory;
+    b->mmap = buf->mmap;
+    b->file = buf->file;
+
+    if (buf->in_file) {
+        b->file_pos = buf->file_pos + range->start;
+        b->file_last = buf->file_pos + range->end;
+    }
+
+    dcl = ngx_alloc_chain_link(r->pool);
+    if (dcl == NULL) {
+        return NGX_ERROR;
+    }
+
+    dcl->buf = b;
+    dcl->next = NULL;
+
+
+    range->offset = last;
+    ctx->offset =+ range->offset;
+
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "http range body buf: %O-%O", start, last);
+
+    if (range->end <= start || range->start >= last) {
+
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "http range body skip");
+
+        if (b->in_file) {
+            b->file_pos = b->file_last;
         }
 
-        /*
-         *you can't just use this buf it may be needed
-         * by some other range, so I'll pull some logic in from multirange
+        b->pos = b->last;
+        b->sync = 1;
+
+    }
+
+    if (range->start > start) {
+
+        if (b->in_file) {
+            b->file_pos += range->start - start;
+        } /* skip up to the first point of the range */
+    }
+
+    if (range->end <= last) {
+
+        //if (b->in_file) {
+        //    b->file_last -= last - range->end;
+        //}
+
+        if (ctx->ranges.nelts <= 1) {
+            b->last_buf = (r == r->main) ? 1 : 0;
+            b->last_in_chain = 1;
+        }
+        /* if we're in a subrequest then we're letting
+         * slice_body_filter call ngx_http_send_special(...,NGX_HTTP_LAST)
+         * set last_buf = 1 so ngx_http_write_filter() starts sending
          */
-
-        b = ngx_calloc_buf(r->pool);
-        if (b == NULL) {
-            return NGX_ERROR;
-        }
-
-        b->in_file = buf->in_file;
-        b->temporary = buf->temporary;
-        b->memory = buf->memory;
-        b->mmap = buf->mmap;
-        b->file = buf->file;
-
-        if (buf->in_file) {
-            b->file_pos = buf->file_pos + range->start;
-            b->file_last = buf->file_pos + range->end;
-        }
-
-        dcl = ngx_alloc_chain_link(r->pool);
-        if (dcl == NULL) {
-            return NGX_ERROR;
-        }
-
-        dcl->buf = b;
-
-        //*ll = hcl;
-        //hcl->next = rcl;
-        //rcl->next = dcl;
-        //ll = &dcl->next;
-        /* the range data */
-
-
-        start = range->offset;
-        last = range->offset + ngx_buf_size(buf);
-
-        range->offset = last;
-        ctx->offset =+ range->offset;
-
-        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                       "http range body buf: %O-%O", start, last);
-
-//        if (ngx_buf_special(buf)) {
-//
-//            if (range->end <= start) {
-//                continue;
-//            }
-//
-//            tl = ngx_alloc_chain_link(r->pool);
-//            if (tl == NULL) {
-//                return NGX_ERROR;
-//            }
-//
-//            tl->buf = buf;
-//            tl->next = NULL;
-//
-//            *ll = tl;
-//            ll = &tl->next;
-//
-//            continue;
-//        }
-
-        if (range->end <= start || range->start >= last) {
-
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                           "http range body skip");
-
-            if (b->in_file) {
-                b->file_pos = b->file_last;
-            }
-
-            b->pos = b->last;
-            b->sync = 1;
-
-            continue;
-        }
-
-        if (range->start > start) {
-
-            if (b->in_file) {
-                b->file_pos += range->start - start;
-            }
-        }
-
-        if (range->end <= last) {
-
-            if (b->in_file) {
-                b->file_last -= last - range->end;
-            }
-
-            if (ctx->ranges.nelts <= 1) {
-                b->last_buf = (r == r->main) ? 1 : 0;
-                b->last_in_chain = 1;
-            }
-            /* if we're in a subrequest then we're letting
-             * slice_body_filter call ngx_http_send_special(...,NGX_HTTP_LAST)
-             * set last_buf = 1 so ngx_http_write_filter() starts sending
-             */
-
-            tl = ngx_alloc_chain_link(r->pool);
-            if (tl == NULL) {
-                return NGX_ERROR;
-            }
-
-            tl->buf = b;
-            tl->next = NULL;
-
-            *ll = tl;
-            ll = &tl->next;
-
-            range->fulfilled = 1;
-            break;
-        }
-
-//        tl = ngx_alloc_chain_link(r->pool);
-//        if (tl == NULL) {
-//            return NGX_ERROR;
-//        }
-//
-//        tl->buf = b;
-//        tl->next = NULL;
-//
-//        *ll = tl;
-//        ll = &tl->next;
+        range->fulfilled = 1;
+        //break;
     }
 
-    if (range->fulfilled) {
-        tl = ngx_alloc_chain_link(r->pool);
-        if (tl == NULL) {
-            return NGX_ERROR;
-        }
-
-        tl->buf = b;
-        tl->next = NULL;
-
-        *ll = tl;
-        ll = &tl->next;
-    }
-
-    *inl = out;
-    out = in;
     ngx_print_chainlink_to_stderr(r, out);
 
     rc = ngx_http_next_body_filter(r, out);
