@@ -76,6 +76,8 @@ static ngx_int_t ngx_http_range_multipart_body(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in);
 static ngx_int_t ngx_http_range_multipart_append_bounds(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in);
+static ngx_int_t ngx_http_range_multipart_append_final(ngx_http_request_t *r,
+    ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in);
 
 static ngx_int_t ngx_http_range_header_filter_init(ngx_conf_t *cf);
 static ngx_int_t ngx_http_range_body_filter_init(ngx_conf_t *cf);
@@ -661,8 +663,9 @@ ngx_http_range_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
     }
 
     if (ctx->ranges.nelts > 1) {
+        ngx_http_range_multipart_append_bounds(r, ctx, in);
         ngx_http_range_singlepart_body(r, ctx, in);
-        return ngx_http_range_multipart_append_bounds(r, ctx, in);
+        return ngx_http_range_multipart_append_final(r, ctx, in);
     }
 
     /*
@@ -996,6 +999,13 @@ ngx_http_range_body_filter_init(ngx_conf_t *cf)
     ngx_http_next_body_filter = ngx_http_top_body_filter;
     ngx_http_top_body_filter = ngx_http_range_body_filter;
 
+    return NGX_OK;
+}
+
+static ngx_int_t
+ngx_http_range_multipart_append_final(ngx_http_request_t *r,
+    ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in)
+{
     return NGX_OK;
 }
 
