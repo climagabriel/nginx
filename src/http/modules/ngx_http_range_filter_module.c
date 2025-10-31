@@ -794,6 +794,10 @@ ngx_http_range_singlepart_body(ngx_http_request_t *r,
             }
 
             buf->last_buf = (r == r->main) ? 1 : 0;
+            /* if we're in a subrequest then we're letting
+             * slice_body_filter call ngx_http_send_special(...,NGX_HTTP_LAST)
+             * set last_buf = 1 so ngx_http_write_filter() starts sending
+             */
             buf->last_in_chain = 1;
 
             tl = ngx_alloc_chain_link(r->pool);
@@ -824,7 +828,7 @@ ngx_http_range_singlepart_body(ngx_http_request_t *r,
 
     rc = ngx_http_next_body_filter(r, out);
 
-    while (out) {
+    while (out) { /*because out was appended to r->out/r->main->out by now*/
         cl = out;
         out = out->next;
         ngx_free_chain(r->pool, cl);
