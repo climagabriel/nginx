@@ -702,7 +702,7 @@ ngx_http_range_test_overlapped(ngx_http_request_t *r,
     if (!buf->last_buf) {
         start = ctx->offset;
         last = ctx->offset + ngx_buf_size(buf);
-
+    /* wtf is dis shit, ctx->offset is 0 by definition on this line */
         range = ctx->ranges.elts;
         for (i = 0; i < ctx->ranges.nelts; i++) {
             if (start > range[i].start || last < range[i].end) {
@@ -1067,7 +1067,7 @@ ngx_http_range_huinglepart_body(ngx_http_request_t *r,
 
     out = NULL;
     ll = &out;
-
+    /*iterate over ranges and find unfulfilled ones */
     for (ngx_uint_t i = 0; i < ctx->ranges.nelts; i++) {
         ngx_http_range_t  current_range, *p;
         off_t         size;
@@ -1077,33 +1077,44 @@ ngx_http_range_huinglepart_body(ngx_http_request_t *r,
 
         size = current_range.end - current_range.start;
 
-        if (size > current_range.range_offset) {
             ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
                     "range: %*s size: %O offset: %O",
                     current_range.content_range.len-4,
                     current_range.content_range.data,
                     size, current_range.range_offset);
 
+        if (size > current_range.range_offset) {
+
+            range = &p[i];
             break;
         }
     }
+//    ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
+//                    "range: %*s",
+//                    range->content_range.len-4,
+//                    range->content_range.data);
+/*    TODO: find where and how to increment range->range_offset
+ *    range->range_offset should be = to
+ *    x*slice_size - range.start + y*slice_sie + (z - range.end)
+ *
+ */
 
-    range = ctx->ranges.elts;
+//    range = ctx->ranges.elts;
 
     for (cl = in; cl; cl = cl->next) {
-
+/* wtf are you iterating over you dumb shit, in->next is always null */
         buf = cl->buf;
 
         start = ctx->offset;
         last = ctx->offset + ngx_buf_size(buf);
-
+        /* can only be multiple of slice size */
         ctx->offset = last;
 
         ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                        "http range body buf: %O-%O", start, last);
 
         if (ngx_buf_special(buf)) {
-
+        /* most likely the last buf ; appended by ngx_http_send_special */
             if (range->end <= start) {
                 continue;
             }
@@ -1179,6 +1190,7 @@ ngx_http_range_huinglepart_body(ngx_http_request_t *r,
             continue;
         }
 
+
         tl = ngx_alloc_chain_link(r->pool);
         if (tl == NULL) {
             return NGX_ERROR;
@@ -1189,6 +1201,10 @@ ngx_http_range_huinglepart_body(ngx_http_request_t *r,
 
         *ll = tl;
         ll = &tl->next;
+    }
+
+    if (buf->in_file) {
+        range->range_offset += (buf->file_last - buf->file_pos);
     }
 
     //ngx_print_chainlink_to_stderr(r, out);
