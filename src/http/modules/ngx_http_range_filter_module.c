@@ -60,8 +60,6 @@ typedef struct {
     ngx_str_t    boundary_header;
     ngx_array_t  ranges;
     ngx_chain_t *final_boundary;
-    ngx_chain_t *saved_out;
-    off_t        runs;
 } ngx_http_range_filter_ctx_t;
 
 
@@ -878,8 +876,11 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
     buf = in->buf;
     range = ctx->ranges.elts;
 
-    for (i = 0; i < ctx->ranges.nelts; i++) {
-
+    i = 0;
+    for (; i < ctx->ranges.nelts; i++) {
+        if (range[i].fulfilled) {
+            continue;
+        }
         /*
          * The boundary header of the range:
          * CRLF
@@ -969,6 +970,9 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
         hcl->next = rcl;
         rcl->next = dcl;
         ll = &dcl->next;
+        if (!range[i].fulfilled) {
+            break;
+        }
     }
 
     /* the last boundary CRLF "--0123456789--" CRLF  */
@@ -997,45 +1001,18 @@ ngx_http_range_multipart_body(ngx_http_request_t *r,
         return NGX_ERROR;
     }
 
-
-    for (i = 0; i < ctx->ranges.nelts; i++) {
-        if (!range[i].fulfilled) {
-            hcl->buf = b;
-            hcl->next = NULL;
-
-
-            ctx->final_boundary = hcl;
-            ctx->saved_out = out;
-        }
-    }
-
-    if (ctx->runs == 0 && ctx->saved_out == NULL)  {
+    if (i < ctx->ranges.nelts) {
         hcl->buf = b;
         hcl->next = NULL;
-
-        *ll = hcl;
+        ctx->final_boundary = hcl;
     }
 
-    if (ctx->runs) {
-        //ngx_chain_t **lastl;
+    if (i == ctx->ranges.nelts && range[i].fulfilled) {
         hcl = ctx->final_boundary;
         dcl->next= hcl;
-
-        out = dcl; /* out will be appened to r->out / r->main->out 
-                      in ngx_http_write_filter */
-        //out = ctx->saved_out;
-
-        //lastl = &out->next;
-        //while ((**lastl).next) {
-        //    lastl = &(*lastl)->next;
-        //}
-        //(**lastl).next = dcl;
-
-        //r->out = NULL;
-        //r->main->out = NULL;
+    /* out will be appened to r->out / r->main->out in ngx_http_write_filter */
+        out = dcl;
     }
-
-    ctx->runs++;
 
     if (r != r->main) {
         fprintf(stderr, "r != r->main\n");
