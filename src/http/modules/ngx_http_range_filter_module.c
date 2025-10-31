@@ -72,9 +72,12 @@ static ngx_int_t ngx_http_range_singlepart_body(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in);
 static ngx_int_t ngx_http_range_multipart_body(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in);
+static ngx_int_t ngx_http_range_multipart_append_bounds(ngx_http_request_t *r,
+    ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in);
 
 static ngx_int_t ngx_http_range_header_filter_init(ngx_conf_t *cf);
 static ngx_int_t ngx_http_range_body_filter_init(ngx_conf_t *cf);
+
 
 
 static ngx_http_module_t  ngx_http_range_header_filter_module_ctx = {
@@ -655,6 +658,11 @@ ngx_http_range_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         return ngx_http_range_singlepart_body(r, ctx, in);
     }
 
+    if (ctx->ranges.nelts > 1) {
+        ngx_http_range_singlepart_body(r, ctx, in);
+        return ngx_http_range_multipart_append_bounds(r, ctx, in);
+    }
+
     /*
      * multipart ranges are supported only if whole body is in a single buffer
      */
@@ -981,4 +989,133 @@ ngx_http_range_body_filter_init(ngx_conf_t *cf)
     ngx_http_top_body_filter = ngx_http_range_body_filter;
 
     return NGX_OK;
+}
+
+static ngx_int_t
+ngx_http_range_multipart_append_bounds(ngx_http_request_t *r,
+    ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in)
+{
+    ngx_buf_t         *b, *buf;
+    ngx_uint_t         i;
+    ngx_chain_t       *out, *hcl, *rcl, *dcl, **ll;
+    ngx_http_range_t  *range;
+
+    ll = &out;
+    buf = in->buf;
+    range = ctx->ranges.elts;
+
+    for (i = 0; i < ctx->ranges.nelts; i++) {
+
+        /*
+         * The boundary header of the range:
+         * CRLF
+         * "--0123456789" CRLF
+         * "Content-Type: image/jpeg" CRLF
+         * "Content-Range: bytes "
+         */
+
+        b = ngx_calloc_buf(r->pool);
+        if (b == NULL) {
+            return NGX_ERROR;
+        }
+
+        b->memory = 1;
+        b->pos = ctx->boundary_header.data;
+        b->last = ctx->boundary_header.data + ctx->boundary_header.len;
+
+        hcl = ngx_alloc_chain_link(r->pool);
+        if (hcl == NULL) {
+            return NGX_ERROR;
+        }
+
+        hcl->buf = b;
+
+
+        /* "SSSS-EEEE/TTTT" CRLF CRLF */
+
+        b = ngx_calloc_buf(r->pool);
+        if (b == NULL) {
+            return NGX_ERROR;
+        }
+
+        b->temporary = 1;
+        b->pos = range[i].content_range.data;
+        b->last = range[i].content_range.data + range[i].content_range.len;
+
+        rcl = ngx_alloc_chain_link(r->pool);
+        if (rcl == NULL) {
+            return NGX_ERROR;
+        }
+
+        rcl->buf = b;
+
+
+        /* the range data */
+
+        b = ngx_calloc_buf(r->pool);
+        if (b == NULL) {
+            return NGX_ERROR;
+        }
+
+        b->in_file = buf->in_file;
+        b->temporary = buf->temporary;
+        b->memory = buf->memory;
+        b->mmap = buf->mmap;
+        b->file = buf->file;
+
+        if (buf->in_file) {
+            b->file_pos = buf->file_pos + range[i].start;
+            b->file_last = buf->file_pos + range[i].end;
+        }
+
+        if (ngx_buf_in_memory(buf)) {
+            b->pos = buf->pos + (size_t) range[i].start;
+            b->last = buf->pos + (size_t) range[i].end;
+        }
+
+        dcl = ngx_alloc_chain_link(r->pool);
+        if (dcl == NULL) {
+            return NGX_ERROR;
+        }
+
+        dcl->buf = b;
+
+        *ll = hcl;
+        hcl->next = rcl;
+        rcl->next = dcl;
+        ll = &dcl->next;
+    }
+
+    /* the last boundary CRLF "--0123456789--" CRLF  */
+
+    b = ngx_calloc_buf(r->pool);
+    if (b == NULL) {
+        return NGX_ERROR;
+    }
+
+    b->temporary = 1;
+    b->last_buf = 1;
+
+    b->pos = ngx_pnalloc(r->pool, sizeof(CRLF "--") - 1 + NGX_ATOMIC_T_LEN
+                                  + sizeof("--" CRLF) - 1);
+    if (b->pos == NULL) {
+        return NGX_ERROR;
+    }
+
+    b->last = ngx_cpymem(b->pos, ctx->boundary_header.data,
+                         sizeof(CRLF "--") - 1 + NGX_ATOMIC_T_LEN);
+    *b->last++ = '-'; *b->last++ = '-';
+    *b->last++ = CR; *b->last++ = LF;
+
+    hcl = ngx_alloc_chain_link(r->pool);
+    if (hcl == NULL) {
+        return NGX_ERROR;
+    }
+
+    hcl->buf = b;
+    hcl->next = NULL;
+
+    *ll = hcl;
+
+    return ngx_http_next_body_filter(r, out);
 }
