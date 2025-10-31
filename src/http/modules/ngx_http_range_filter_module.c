@@ -51,6 +51,7 @@ typedef struct {
     off_t        start;
     off_t        end;
     ngx_str_t    content_range;
+    off_t        range_offset;
 } ngx_http_range_t;
 
 
@@ -381,6 +382,7 @@ ngx_http_range_parse(ngx_http_request_t *r, ngx_http_range_filter_ctx_t *ctx,
 
             range->start = start;
             range->end = end;
+            range->range_offset = 0;
 
             if (size > NGX_MAX_OFF_T_VALUE - (end - start)) {
                 return NGX_HTTP_RANGE_NOT_SATISFIABLE;
@@ -661,7 +663,7 @@ ngx_http_range_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     if (ctx->ranges.nelts > 1) {
         int rc;
-        ngx_print_chainlink_to_stderr(r, in);
+        //ngx_print_chainlink_to_stderr(r, in);
         rc = ngx_http_range_huinglepart_body(r, ctx, in);
         return rc;
     }
@@ -839,7 +841,7 @@ ngx_http_range_singlepart_body(ngx_http_request_t *r,
 
     rc = ngx_http_next_body_filter(r, out);
 
-    ngx_print_chainlink_to_stderr(r, out);
+    //ngx_print_chainlink_to_stderr(r, out);
 
     while (out) { /*because out was appended to r->out/r->main->out by now*/
         cl = out;
@@ -1065,6 +1067,27 @@ ngx_http_range_huinglepart_body(ngx_http_request_t *r,
 
     out = NULL;
     ll = &out;
+
+    for (ngx_uint_t i = 0; i < ctx->ranges.nelts; i++) {
+        ngx_http_range_t  current_range, *p;
+        off_t         size;
+
+        p = ctx->ranges.elts;
+        current_range = p[i];
+
+        size = current_range.end - current_range.start;
+
+        if (size > current_range.range_offset) {
+            ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
+                    "range: %*s size: %O offset: %O",
+                    current_range.content_range.len-4,
+                    current_range.content_range.data,
+                    size, current_range.range_offset);
+
+            break;
+        }
+    }
+
     range = ctx->ranges.elts;
 
     for (cl = in; cl; cl = cl->next) {
@@ -1168,7 +1191,7 @@ ngx_http_range_huinglepart_body(ngx_http_request_t *r,
         ll = &tl->next;
     }
 
-    ngx_print_chainlink_to_stderr(r, out);
+    //ngx_print_chainlink_to_stderr(r, out);
 
     rc = ngx_http_next_body_filter(r, out);
 
