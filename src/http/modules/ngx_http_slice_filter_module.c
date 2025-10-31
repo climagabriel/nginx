@@ -253,6 +253,15 @@ ngx_http_slice_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         return NGX_ERROR;
     }
 
+    /* ctx->end is Content-Length
+     * ctx->start is a slice size multiple
+     * after the first iteration (multirange) if my content length
+     * is too small, then a subrequest isn't posted and I'm left hanging
+     * which probably goes to show I need to post the subrequest from the range filter
+     * and return some kind of rc here that will tell it to chill out
+     *
+     * Or maybe try the singlerange per range + inject boundaries approach instead.
+     */
     if (ctx->start >= ctx->end) {
         ngx_http_set_ctx(r, NULL, ngx_http_slice_filter_module);
         ngx_http_send_special(r, NGX_HTTP_LAST);
