@@ -207,7 +207,7 @@ ngx_http_slice_header_filter(ngx_http_request_t *r)
                    + r->headers_out.content_length_n;
 
     } else {
-        ctx->end = cr.complete_length;
+        ctx->end = cr.complete_length; /*Content-Length: 420*/
     }
 
     return rc;
@@ -238,6 +238,39 @@ ngx_http_slice_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
     }
 
     rc = ngx_http_next_body_filter(r, in);
+
+    /*
+     if (rc == NGX_AGAIN && r->ranges_array) {
+
+        iterate over the array of ranges
+        find the first unfulfilled one and
+        set the appropriate ctx.range kinda like:
+
+             if (ngx_http_subrequest(r, &r->uri, &r->args, &ctx->sr, NULL,
+                                     NGX_HTTP_SUBREQUEST_CLONE)
+                 != NGX_OK)
+             {
+                 return NGX_ERROR;
+             }
+
+             ngx_http_set_ctx(ctx->sr, ctx, ngx_http_slice_filter_module);
+
+             slcf = ngx_http_get_module_loc_conf(r, ngx_http_slice_filter_module);
+
+             ctx->range.len = ngx_sprintf(ctx->range.data, "bytes=%O-%O", ctx->start,
+                                          ctx->start + (off_t) slcf->size - 1)
+                              - ctx->range.data;
+
+             ctx->active = 0;
+
+             ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                            "http slice subrequest: \"%V\"", &ctx->range);
+
+             return rc;
+
+        but keeping the range start end and offset in mind
+      }
+     */
 
     if (rc == NGX_ERROR || !ctx->last) {
         return rc;
