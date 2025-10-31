@@ -78,6 +78,8 @@ static ngx_int_t ngx_http_range_multipart_body(ngx_http_request_t *r,
 static ngx_int_t ngx_http_range_header_filter_init(ngx_conf_t *cf);
 static ngx_int_t ngx_http_range_body_filter_init(ngx_conf_t *cf);
 
+static ngx_int_t ngx_http_range_huinglepart_body(ngx_http_request_t *r,
+    ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in);
 
 static ngx_http_module_t  ngx_http_range_header_filter_module_ctx = {
     NULL,                                  /* preconfiguration */
@@ -657,6 +659,13 @@ ngx_http_range_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         return ngx_http_range_singlepart_body(r, ctx, in);
     }
 
+    if (ctx->ranges.nelts > 1) {
+        int rc;
+        ngx_print_chainlink_to_stderr(r, in);
+        rc = ngx_http_range_huinglepart_body(r, ctx, in);
+        return rc;
+    }
+
     /*
      * multipart ranges are supported only if whole body is in a single buffer
      */
@@ -1042,4 +1051,132 @@ void ngx_print_chainlink(ngx_chain_t *chain) {
         outchain = outchain->next;
     }
 
+}
+
+static ngx_int_t
+ngx_http_range_huinglepart_body(ngx_http_request_t *r,
+    ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in)
+{
+    off_t              start, last;
+    ngx_int_t          rc;
+    ngx_buf_t         *buf;
+    ngx_chain_t       *out, *cl, *tl, **ll;
+    ngx_http_range_t  *range;
+
+    out = NULL;
+    ll = &out;
+    range = ctx->ranges.elts;
+
+    for (cl = in; cl; cl = cl->next) {
+
+        buf = cl->buf;
+
+        start = ctx->offset;
+        last = ctx->offset + ngx_buf_size(buf);
+
+        ctx->offset = last;
+
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "http range body buf: %O-%O", start, last);
+
+        if (ngx_buf_special(buf)) {
+
+            if (range->end <= start) {
+                continue;
+            }
+
+            tl = ngx_alloc_chain_link(r->pool);
+            if (tl == NULL) {
+                return NGX_ERROR;
+            }
+
+            tl->buf = buf;
+            tl->next = NULL;
+
+            *ll = tl;
+            ll = &tl->next;
+
+            continue;
+        }
+
+        if (range->end <= start || range->start >= last) {
+
+            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                           "http range body skip");
+
+            if (buf->in_file) {
+                buf->file_pos = buf->file_last;
+            }
+
+            buf->pos = buf->last;
+            buf->sync = 1;
+
+            continue;
+        }
+
+        if (range->start > start) {
+
+            if (buf->in_file) {
+                buf->file_pos += range->start - start;
+            }
+
+            if (ngx_buf_in_memory(buf)) {
+                buf->pos += (size_t) (range->start - start);
+            }
+        }
+
+        if (range->end <= last) {
+
+            if (buf->in_file) {
+                buf->file_last -= last - range->end;
+            }
+
+            if (ngx_buf_in_memory(buf)) {
+                buf->last -= (size_t) (last - range->end);
+            }
+
+            buf->last_buf = (r == r->main) ? 1 : 0;
+            /* if we're in a subrequest then we're letting
+             * slice_body_filter call ngx_http_send_special(...,NGX_HTTP_LAST)
+             * set last_buf = 1 so ngx_http_write_filter() starts sending
+             */
+            buf->last_in_chain = 1;
+
+            tl = ngx_alloc_chain_link(r->pool);
+            if (tl == NULL) {
+                return NGX_ERROR;
+            }
+
+            tl->buf = buf;
+            tl->next = NULL;
+
+            *ll = tl;
+            ll = &tl->next;
+
+            continue;
+        }
+
+        tl = ngx_alloc_chain_link(r->pool);
+        if (tl == NULL) {
+            return NGX_ERROR;
+        }
+
+        tl->buf = buf;
+        tl->next = NULL;
+
+        *ll = tl;
+        ll = &tl->next;
+    }
+
+    ngx_print_chainlink_to_stderr(r, out);
+
+    rc = ngx_http_next_body_filter(r, out);
+
+    while (out) { /*because out was appended to r->out/r->main->out by now*/
+        cl = out;
+        out = out->next;
+        ngx_free_chain(r->pool, cl);
+    }
+
+    return rc;
 }
