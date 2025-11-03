@@ -574,6 +574,8 @@ struct ngx_http_request_s {
     unsigned                          background:1;
     unsigned                          health_check:1;
 
+    ngx_array_t                      *ranges;
+
     /* used to parse HTTP headers */
 
     ngx_uint_t                        state;

@@ -243,6 +243,7 @@ parse:
             return ngx_http_range_singlepart_header(r, ctx);
         }
 
+        r->ranges =  &ctx->ranges;
         return ngx_http_range_multipart_header(r, ctx);
 
     case NGX_HTTP_RANGE_NOT_SATISFIABLE:
