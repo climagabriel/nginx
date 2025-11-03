@@ -227,7 +227,10 @@ ngx_http_slice_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
     ngx_int_t                   rc;
     ngx_chain_t                *cl;
     ngx_http_slice_ctx_t       *ctx;
+    ngx_http_range_t           *range;
+    ngx_array_t                *ranges;
     ngx_http_slice_loc_conf_t  *slcf;
+    off_t                       slice_start = 0;
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_slice_filter_module);
 
@@ -303,6 +306,7 @@ ngx_http_slice_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         return rc;
     }
 
+
     if (ngx_http_subrequest(r, &r->uri, &r->args, &ctx->sr, NULL,
                             NGX_HTTP_SUBREQUEST_CLONE)
         != NGX_OK)
@@ -317,6 +321,22 @@ ngx_http_slice_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
     ctx->range.len = ngx_sprintf(ctx->range.data, "bytes=%O-%O", ctx->start,
                                  ctx->start + (off_t) slcf->size - 1)
                      - ctx->range.data;
+
+    if (r->ranges && r->ranges->nelts) {
+        ranges = r->ranges;
+        range = ranges->elts;
+        for (ngx_uint_t i = 0; i < ranges->nelts; i++) {
+            if ((range[i].end - range[i].start) > range[i].range_offset) {
+                slice_start = (range[i].start + range[i].range_offset) / slcf->size;
+                ctx->range.len = ngx_sprintf(ctx->range.data, "bytes=%O-%O", slice_start,
+                        slice_start + (off_t) slcf->size - 1)
+                    - ctx->range.data;
+                break;
+            }
+        }
+    }
+
+
 
     ctx->active = 0;
 
