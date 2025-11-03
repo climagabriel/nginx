@@ -58,7 +58,7 @@ typedef struct {
 typedef struct {
     off_t        offset;
     ngx_str_t    boundary_header;
-    ngx_array_t  ranges;
+    ngx_array_t  ranges; /* ngx_http_range_t* */
 } ngx_http_range_filter_ctx_t;
 
 
