@@ -332,7 +332,7 @@ ngx_http_slice_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
                 ctx->range.len = ngx_sprintf(ctx->range.data, "bytes=%O-%O", slice_start,
                         slice_start + (off_t) slcf->size - 1) - ctx->range.data;
                 ctx->start = slice_start;
-                ctx->end  = slice_start + (off_t) slcf->size - 1;
+                //ctx->end  = slice_start + (off_t) slcf->size - 1;
                 break;
             }
         }
