@@ -1067,12 +1067,10 @@ ngx_http_range_huinglepart_body(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in)
 {
     ngx_int_t          rc;
-    ngx_buf_t         *buf;
     ngx_chain_t       *out, *cl;
     ngx_http_range_t  *range = NULL;
 
     out = NULL;
-    buf = in->buf;
 
     /*iterate over ranges and find unfulfilled ones */
     for (ngx_uint_t i = 0; i < ctx->ranges.nelts; i++) {
@@ -1128,10 +1126,6 @@ ngx_http_range_huinglepart_body(ngx_http_request_t *r,
         ngx_http_range_prepend_boundaries(r, range, in, &out);
     }
 
-
-    if (range && buf->in_file) {
-        range->range_offset += (buf->file_last - buf->file_pos);
-    } else { /*TODO*/ }
 
     ngx_print_chainlink_to_stderr(r, out);
 
@@ -1242,6 +1236,7 @@ ngx_http_range_prepend_boundaries(ngx_http_request_t *r,
     }
 
 
+    range->range_offset += (b->file_last -  b->file_pos);
 
     dcl = ngx_alloc_chain_link(r->pool);
     if (dcl == NULL) {
