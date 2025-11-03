@@ -331,6 +331,9 @@ ngx_http_slice_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
                 ctx->range.len = ngx_sprintf(ctx->range.data, "bytes=%O-%O", slice_start,
                         slice_start + (off_t) slcf->size - 1)
                     - ctx->range.data;
+                //ctx->start = slcf->size * (range[i].start + range[i].range_offset) / slcf->size;
+                ctx->start = 0;
+                ctx->end = 0;
                 break;
             }
         }
