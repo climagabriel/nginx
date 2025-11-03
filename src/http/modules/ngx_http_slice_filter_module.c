@@ -327,18 +327,16 @@ ngx_http_slice_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         range = ranges->elts;
         for (ngx_uint_t i = 0; i < ranges->nelts; i++) {
             if ((range[i].end - range[i].start) > range[i].range_offset) {
-                slice_start = (range[i].start + range[i].range_offset) / slcf->size;
+                off_t range_pos = range[i].start + range[i].range_offset;
+                slice_start = (range_pos) ? ((range_pos - 1) / slcf->size * slcf->size) : 0;
                 ctx->range.len = ngx_sprintf(ctx->range.data, "bytes=%O-%O", slice_start,
-                        slice_start + (off_t) slcf->size - 1)
-                    - ctx->range.data;
+                        slice_start + (off_t) slcf->size - 1) - ctx->range.data;
                 ctx->start = slice_start;
                 ctx->end  = slice_start + (off_t) slcf->size - 1;
                 break;
             }
         }
     }
-
-
 
     ctx->active = 0;
 
