@@ -88,6 +88,9 @@ static ngx_int_t ngx_http_range_prepend_boundaries(ngx_http_request_t *r,
 static ngx_int_t ngx_http_range_append_last(ngx_http_request_t *r,
         ngx_chain_t *in, ngx_chain_t **out);
 
+static ngx_int_t ngx_http_range_append_data(ngx_http_request_t *r,
+    ngx_http_range_t *range, ngx_chain_t *in, ngx_chain_t **out);
+
 static ngx_http_module_t  ngx_http_range_header_filter_module_ctx = {
     NULL,                                  /* preconfiguration */
     ngx_http_range_header_filter_init,     /* postconfiguration */
@@ -1124,8 +1127,9 @@ ngx_http_range_huinglepart_body(ngx_http_request_t *r,
      * should the offset contain the boundaries ?
      */
         ngx_http_range_prepend_boundaries(r, range, in, &out);
+    } else if (range && range->range_offset > 0) {
+        ngx_http_range_append_data(r, range, in, &out);
     }
-
 
     ngx_print_chainlink_to_stderr(r, out);
 
@@ -1233,6 +1237,8 @@ ngx_http_range_prepend_boundaries(ngx_http_request_t *r,
         if (buf->in_file) {
             b->file_last = buf->file_last - (last - range->end);
         } else { /*TODO:*/ }
+    } else {
+        b->file_last = buf->file_last;
     }
 
 
@@ -1301,4 +1307,65 @@ static ngx_int_t ngx_http_range_append_last(ngx_http_request_t *r, ngx_chain_t *
     *ll = hcl;
 
     return  NGX_OK;
+}
+
+static ngx_int_t
+ngx_http_range_append_data(ngx_http_request_t *r,
+    ngx_http_range_t *range, ngx_chain_t *in, ngx_chain_t **out)
+{
+    ngx_buf_t         *b, *buf;
+    ngx_chain_t       *dcl, **ll;
+    off_t              start, last;
+
+    /*remaining = range->end - range->start - range->range_offset; */
+    /* range size minus satisfied */
+
+    ll = out;
+    buf = in->buf;
+
+    start = range->range_offset;
+    last = start + ngx_buf_size(buf);
+
+    /* the range data */
+
+    b = ngx_calloc_buf(r->pool);
+    if (b == NULL) {
+        return NGX_ERROR;
+    }
+
+    b->in_file = buf->in_file;
+    b->temporary = buf->temporary;
+    b->memory = buf->memory;
+    b->mmap = buf->mmap;
+    b->file = buf->file;
+
+    if (range->start > start) {
+        if (buf->in_file) {
+            b->file_pos = buf->file_pos + (range->start - start);
+        } else { /*TODO:*/ }
+    }
+
+    if (range->end <= last) {
+        if (buf->in_file) {
+            b->file_last = buf->file_last - (last - range->end);
+        } else { /*TODO:*/ }
+    } else {
+        b->file_last = buf->file_last;
+    }
+
+
+    range->range_offset += (b->file_last -  b->file_pos);
+
+    dcl = ngx_alloc_chain_link(r->pool);
+    if (dcl == NULL) {
+        return NGX_ERROR;
+    }
+
+    dcl->buf = b;
+    dcl->next = NULL;
+
+    *ll = dcl;
+    ll = &dcl->next;
+
+    return NGX_OK;
 }
