@@ -707,7 +707,14 @@ ngx_http_range_test_overlapped(ngx_http_request_t *r,
         range = ctx->ranges.elts;
         for (i = 0; i < ctx->ranges.nelts; i++) {
             if (start > range[i].start || last < range[i].end) {
-                goto overlapped;
+                ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0, "range: \'%*s\' offset: %O ;",
+                        range[i].content_range.len-4,
+                        range[i].content_range.data,
+                        range[i].range_offset);
+                if (buf->in_file) {
+                    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,"cache_file: \'%s\', %O", buf->file->name.data, ngx_buf_size(buf));
+                }
+                return NGX_ERROR;
             }
         }
     }
@@ -716,14 +723,14 @@ ngx_http_range_test_overlapped(ngx_http_request_t *r,
 
     return NGX_OK;
 
-overlapped:
-
-    ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
-                  "range in overlapped buffers; or non-zero offset: %O",
-                  ctx->offset);
-
-
-    return NGX_ERROR;
+//overlapped:
+//
+//    ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
+//                  "range in overlapped buffers; or non-zero offset: %O",
+//                  ctx->offset);
+//
+//
+//    return NGX_ERROR;
 }
 
 
