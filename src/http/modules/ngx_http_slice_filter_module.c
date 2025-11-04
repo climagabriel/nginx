@@ -207,6 +207,9 @@ ngx_http_slice_header_filter(ngx_http_request_t *r)
         ctx->end = r->headers_out.content_offset
                    + r->headers_out.content_length_n;
 
+        if (r->ranges) {
+            ctx->end = cr.complete_length;
+        }
     } else {
         ctx->end = cr.complete_length;
     }
@@ -254,7 +257,7 @@ ngx_http_slice_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         return NGX_ERROR;
     }
 
-    if (ctx->start >= ctx->end) {
+    if (ctx->start >= ctx->end) { /* TODO: 1-2,4-16777210 */
         ngx_http_set_ctx(r, NULL, ngx_http_slice_filter_module);
         ngx_http_send_special(r, NGX_HTTP_LAST);
         return rc;
