@@ -1144,6 +1144,7 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
             if (range[i].end <= (ctx->offset + ngx_buf_size(buf))) { /* <= last */
                 b->file_last = b->file_pos + (range[i].end - range[i].start);
             } else {
+                b->file_last = buf->file_last;
                 /*TODO:*/
                 ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_range_multirange_body() range: \'%*s\' ctx->offset:%O, buf_size:%O",
                 range[i].content_range.len-4,
