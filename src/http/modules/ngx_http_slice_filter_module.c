@@ -19,6 +19,7 @@ typedef struct {
     off_t        end;
     ngx_str_t    content_range;
     off_t        range_offset;
+    unsigned     boundaries_prepended:1;
 } ngx_http_range_t;
 
 typedef struct {
