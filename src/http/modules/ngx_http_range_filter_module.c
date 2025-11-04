@@ -693,7 +693,7 @@ ngx_http_range_test_overlapped(ngx_http_request_t *r,
     buf = in->buf;
 
     if (!buf->last_buf) {
-        start = ctx->offset;
+        start = ctx->offset; /* ((ngx_str_t *)r->cache->keys.elts)[0] */
         last = ctx->offset + ngx_buf_size(buf);
 
         range = ctx->ranges.elts;
@@ -834,7 +834,7 @@ ngx_http_range_singlepart_body(ngx_http_request_t *r,
 
     rc = ngx_http_next_body_filter(r, out);
 
-    ngx_print_chainlink_to_stderr(r, out);
+    //ngx_print_chainlink_to_stderr(r, out);
 
     while (out) { /*because out was appended to r->out/r->main->out by now*/
         cl = out;

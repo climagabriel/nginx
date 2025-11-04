@@ -467,8 +467,10 @@ ngx_http_slice_get_start(ngx_http_request_t *r)
 
     p = h->value.data + 6;
 
-    if (ngx_strchr(p, ',')) {
-        return 0;
+    if (ngx_strchr(p, ',') /* && !r->cached */) {
+        /* this is before ngx_http_file_cache_open
+         * I can not make it conditional on r->cached */
+         //return 0;
     }
 
     while (*p == ' ') { p++; }
@@ -482,7 +484,7 @@ ngx_http_slice_get_start(ngx_http_request_t *r)
 
     start = 0;
 
-    while (*p >= '0' && *p <= '9') {
+    while (*p >= '0' && *p <= '9'  && *p != ',' ) {
         if (start >= cutoff && (start > cutoff || *p - '0' > cutlim)) {
             return 0;
         }
