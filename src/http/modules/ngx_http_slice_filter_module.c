@@ -494,6 +494,9 @@ ngx_http_slice_range_variable(ngx_http_request_t *r,
                                      ctx->start + (off_t) slcf->size - 1)
                          - p;
     }
+    ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0, "slice_range_variable: %*s",
+                    ctx->range.len,
+                    ctx->range.data);
 
     v->data = ctx->range.data;
     v->valid = 1;
