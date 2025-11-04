@@ -669,7 +669,7 @@ ngx_http_range_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
     }
 
     if (ngx_http_range_test_overlapped(r, ctx, in) != NGX_OK) {
-        return NGX_ERROR;
+       return NGX_ERROR; // because it ends request if one of the ranges' end is beyond the current buf size
     }
 
     if (0) { return ngx_http_range_multipart_body(r, ctx, in); }
@@ -1123,6 +1123,10 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
         if (buf->in_file) {
             b->file_pos = buf->file_pos + range[i].start;
             b->file_last = buf->file_pos + range[i].end;
+
+            //if (b->file_last > buf->file_last) {
+            //    b->file_last -= (b->file_last - buf->file_last);
+            //}
         }
 
         if (ngx_buf_in_memory(buf)) {
