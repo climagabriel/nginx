@@ -514,6 +514,8 @@ ngx_http_slice_get_start(ngx_http_request_t *r)
     off_t             start, cutoff, cutlim;
     u_char           *p;
     ngx_table_elt_t  *h;
+    ngx_http_range_t           *range;
+    ngx_array_t                *ranges;
 
     if (r->headers_in.if_range) {
         return 0;
@@ -531,7 +533,17 @@ ngx_http_slice_get_start(ngx_http_request_t *r)
     p = h->value.data + 6;
 
     if (ngx_strchr(p, ',')) {
-        return 0;
+        if (r->ranges && r->ranges->nelts) {
+            ranges = r->ranges;
+            range = ranges->elts;
+            for (ngx_uint_t i = 0; i < ranges->nelts; i++) {
+                if ((range[i].end - range[i].start) > range[i].range_offset) {
+                    return range[i].start;
+                }
+            }
+        } else {
+            /*return 0;*/
+        }
     }
 
     while (*p == ' ') { p++; }
@@ -545,7 +557,7 @@ ngx_http_slice_get_start(ngx_http_request_t *r)
 
     start = 0;
 
-    while (*p >= '0' && *p <= '9') {
+    while (*p >= '0' && *p <= '9' && *p != ',') {
         if (start >= cutoff && (start > cutoff || *p - '0' > cutlim)) {
             return 0;
         }
