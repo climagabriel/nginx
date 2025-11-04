@@ -694,7 +694,7 @@ ngx_http_range_test_overlapped(ngx_http_request_t *r,
     if (ctx->offset) {
 //        goto overlapped;
         ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
-                "range in overlapped buffers; or non-zero offset: %O",
+                "ngx_http_range_test_overlapped(): non-zero offset: %O",
                 ctx->offset);
     }
 
@@ -707,14 +707,14 @@ ngx_http_range_test_overlapped(ngx_http_request_t *r,
         range = ctx->ranges.elts;
         for (i = 0; i < ctx->ranges.nelts; i++) {
             if (start > range[i].start || last < range[i].end) {
-                ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0, "range: \'%*s\' offset: %O ;",
+                ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0, "ngx_http_range_test_overlapped() range: \'%*s\' offset:%O start:%O last:%O ;",
                         range[i].content_range.len-4,
                         range[i].content_range.data,
-                        range[i].range_offset);
+                        range[i].range_offset, start, last);
                 if (buf->in_file) {
                     ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,"cache_file: \'%s\', %O", buf->file->name.data, ngx_buf_size(buf));
                 }
-                return NGX_OK;
+                continue;
             }
         }
     }
@@ -1144,7 +1144,12 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
             if (range[i].end <= (ctx->offset + ngx_buf_size(buf))) { /* <= last */
                 b->file_last = b->file_pos + (range[i].end - range[i].start);
             } else {
-                /*TODO: */
+                /*TODO:*/
+                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_range_multirange_body() range: \'%*s\' ctx->offset:%O, buf_size:%O",
+                range[i].content_range.len-4,
+                range[i].content_range.data,
+                ctx->offset,
+                ngx_buf_size(buf));
             }
 
             //if (b->file_last > buf->file_last) {
@@ -1170,7 +1175,7 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
         ll = &dcl->next;
 
         range[i].range_offset += (b->file_last - b->file_pos);
-        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0, "range: \'%*s\' offset: %O",
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_range_multirange_body() range: \'%*s\' offset: %O",
                 range[i].content_range.len-4,
                 range[i].content_range.data,
                 range[i].range_offset);
