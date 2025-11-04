@@ -224,7 +224,7 @@ parse:
 
     ctx->offset = r->headers_out.content_offset;
 
-    ranges = r->single_range ? 1 : clcf->max_ranges;
+    ranges = /* r->single_range */ 0 ? 1 : clcf->max_ranges;
 
     switch (ngx_http_range_parse(r, ctx, ranges)) {
 
@@ -714,7 +714,7 @@ ngx_http_range_test_overlapped(ngx_http_request_t *r,
                 if (buf->in_file) {
                     ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,"cache_file: \'%s\', %O", buf->file->name.data, ngx_buf_size(buf));
                 }
-                return NGX_ERROR;
+                return NGX_OK;
             }
         }
     }
