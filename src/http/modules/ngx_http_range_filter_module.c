@@ -378,6 +378,7 @@ ngx_http_range_parse(ngx_http_request_t *r, ngx_http_range_filter_ctx_t *ctx,
             range->start = start;
             range->end = end;
             range->range_offset = 0;
+            range->bounds_prepended = 0;
 
             if (size > NGX_MAX_OFF_T_VALUE - (end - start)) {
                 return NGX_HTTP_RANGE_NOT_SATISFIABLE;
@@ -707,13 +708,13 @@ ngx_http_range_test_overlapped(ngx_http_request_t *r,
         range = ctx->ranges.elts;
         for (i = 0; i < ctx->ranges.nelts; i++) {
             if (start > range[i].start || last < range[i].end) {
-                ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0, "ngx_http_range_test_overlapped() range: \'%*s\' offset:%O start:%O last:%O ;",
-                        range[i].content_range.len-4,
-                        range[i].content_range.data,
-                        range[i].range_offset, start, last);
-                if (buf->in_file) {
-                    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,"cache_file: \'%s\', %O", buf->file->name.data, ngx_buf_size(buf));
-                }
+               // ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0, "ngx_http_range_test_overlapped() range: \'%*s\' offset:%O start:%O last:%O ;",
+               //         range[i].content_range.len-4,
+               //         range[i].content_range.data,
+               //         range[i].range_offset, start, last);
+               // if (buf->in_file) {
+               //     ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,"cache_file: \'%s\', %O", buf->file->name.data, ngx_buf_size(buf));
+               // }
                 continue;
             }
         }
@@ -766,6 +767,7 @@ ngx_http_range_singlepart_body(ngx_http_request_t *r,
                 continue;
             }
 
+            /* if sliced, means we reached the end of this slice */
             tl = ngx_alloc_chain_link(r->pool);
             if (tl == NULL) {
                 return NGX_ERROR;
@@ -1073,59 +1075,63 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
     ngx_uint_t         i;
     ngx_chain_t       *out, *hcl, *rcl, *dcl, **ll;
     ngx_http_range_t  *range;
+    ngx_uint_t         last_range;
 
     ll = &out;
-    buf = in->buf;
+    buf = in->buf; //TODO:  if (ngx_buf_special(buf)) {}
     range = ctx->ranges.elts;
+    last_range = ctx->ranges.nelts - 1;
 
     for (i = 0; i < ctx->ranges.nelts; i++) {
-
-        /*
-         * The boundary header of the range:
-         * CRLF
-         * "--0123456789" CRLF
-         * "Content-Type: image/jpeg" CRLF
-         * "Content-Range: bytes "
-         */
-
-        b = ngx_calloc_buf(r->pool);
-        if (b == NULL) {
-            return NGX_ERROR;
+        if (range[i].range_offset >= (range[i].end - range[i].start)) {
+            continue;
         }
+        if (!range[i].bounds_prepended) {
+            /*
+             * The boundary header of the range:
+             * CRLF
+             * "--0123456789" CRLF
+             * "Content-Type: image/jpeg" CRLF
+             * "Content-Range: bytes "
+             */
 
-        b->memory = 1;
-        b->pos = ctx->boundary_header.data;
-        b->last = ctx->boundary_header.data + ctx->boundary_header.len;
+            b = ngx_calloc_buf(r->pool);
+            if (b == NULL) {
+                return NGX_ERROR;
+            }
 
-        hcl = ngx_alloc_chain_link(r->pool);
-        if (hcl == NULL) {
-            return NGX_ERROR;
+            b->memory = 1;
+            b->pos = ctx->boundary_header.data;
+            b->last = ctx->boundary_header.data + ctx->boundary_header.len;
+
+            hcl = ngx_alloc_chain_link(r->pool);
+            if (hcl == NULL) {
+                return NGX_ERROR;
+            }
+
+            hcl->buf = b;
+
+
+            /* "SSSS-EEEE/TTTT" CRLF CRLF */
+
+            b = ngx_calloc_buf(r->pool);
+            if (b == NULL) {
+                return NGX_ERROR;
+            }
+
+            b->temporary = 1;
+            b->pos = range[i].content_range.data;
+            b->last = range[i].content_range.data + range[i].content_range.len;
+
+            rcl = ngx_alloc_chain_link(r->pool);
+            if (rcl == NULL) {
+                return NGX_ERROR;
+            }
+
+            rcl->buf = b;
         }
-
-        hcl->buf = b;
-
-
-        /* "SSSS-EEEE/TTTT" CRLF CRLF */
-
-        b = ngx_calloc_buf(r->pool);
-        if (b == NULL) {
-            return NGX_ERROR;
-        }
-
-        b->temporary = 1;
-        b->pos = range[i].content_range.data;
-        b->last = range[i].content_range.data + range[i].content_range.len;
-
-        rcl = ngx_alloc_chain_link(r->pool);
-        if (rcl == NULL) {
-            return NGX_ERROR;
-        }
-
-        rcl->buf = b;
-
 
         /* the range data */
-
         b = ngx_calloc_buf(r->pool);
         if (b == NULL) {
             return NGX_ERROR;
@@ -1139,18 +1145,17 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
 
         if (buf->in_file) {
             b->file_pos = buf->file_pos + range[i].start - ctx->offset; /*- start*/
-            //b->file_last = buf->file_pos + range[i].end;
 
             if (range[i].end <= (ctx->offset + ngx_buf_size(buf))) { /* <= last */
                 b->file_last = b->file_pos + (range[i].end - range[i].start);
             } else {
                 b->file_last = buf->file_last;
                 /*TODO:*/
-                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_range_multirange_body() range: \'%*s\' ctx->offset:%O, buf_size:%O",
-                range[i].content_range.len-4,
-                range[i].content_range.data,
-                ctx->offset,
-                ngx_buf_size(buf));
+               // ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_range_multirange_body() range: \'%*s\' ctx->offset:%O, buf_size:%O",
+               // range[i].content_range.len-4,
+               // range[i].content_range.data,
+               // ctx->offset,
+               // ngx_buf_size(buf));
             }
 
             //if (b->file_last > buf->file_last) {
@@ -1169,49 +1174,59 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
         }
 
         dcl->buf = b;
+        dcl->next = NULL;
 
-        *ll = hcl;
-        hcl->next = rcl;
-        rcl->next = dcl;
-        ll = &dcl->next;
+        if (!range[i].bounds_prepended) {
+            *ll = hcl;
+            hcl->next = rcl;
+            rcl->next = dcl;
+            ll = &dcl->next;
+            range[i].bounds_prepended = 1;
+        } else {
+            *ll = dcl;
+            ll = &dcl->next;
+        }
 
         range[i].range_offset += (b->file_last - b->file_pos);
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_range_multirange_body() range: \'%*s\' offset: %O",
-                range[i].content_range.len-4,
-                range[i].content_range.data,
-                range[i].range_offset);
+
+       // ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_range_multirange_body() range: \'%*s\' offset: %O",
+       //         range[i].content_range.len-4,
+       //         range[i].content_range.data,
+       //         range[i].range_offset);
     }
 
-    /* the last boundary CRLF "--0123456789--" CRLF  */
+    if (range[last_range].range_offset == (range[last_range].end - range[last_range].start)) {
+        /* the last boundary CRLF "--0123456789--" CRLF  */
 
-    b = ngx_calloc_buf(r->pool);
-    if (b == NULL) {
-        return NGX_ERROR;
+        b = ngx_calloc_buf(r->pool);
+        if (b == NULL) {
+            return NGX_ERROR;
+        }
+
+        b->temporary = 1;
+        b->last_buf = 1;
+
+        b->pos = ngx_pnalloc(r->pool, sizeof(CRLF "--") - 1 + NGX_ATOMIC_T_LEN
+                                      + sizeof("--" CRLF) - 1);
+        if (b->pos == NULL) {
+            return NGX_ERROR;
+        }
+
+        b->last = ngx_cpymem(b->pos, ctx->boundary_header.data,
+                             sizeof(CRLF "--") - 1 + NGX_ATOMIC_T_LEN);
+        *b->last++ = '-'; *b->last++ = '-';
+        *b->last++ = CR; *b->last++ = LF;
+
+        hcl = ngx_alloc_chain_link(r->pool);
+        if (hcl == NULL) {
+            return NGX_ERROR;
+        }
+
+        hcl->buf = b;
+        hcl->next = NULL;
+
+        *ll = hcl;
     }
-
-    b->temporary = 1;
-    b->last_buf = 1;
-
-    b->pos = ngx_pnalloc(r->pool, sizeof(CRLF "--") - 1 + NGX_ATOMIC_T_LEN
-                                  + sizeof("--" CRLF) - 1);
-    if (b->pos == NULL) {
-        return NGX_ERROR;
-    }
-
-    b->last = ngx_cpymem(b->pos, ctx->boundary_header.data,
-                         sizeof(CRLF "--") - 1 + NGX_ATOMIC_T_LEN);
-    *b->last++ = '-'; *b->last++ = '-';
-    *b->last++ = CR; *b->last++ = LF;
-
-    hcl = ngx_alloc_chain_link(r->pool);
-    if (hcl == NULL) {
-        return NGX_ERROR;
-    }
-
-    hcl->buf = b;
-    hcl->next = NULL;
-
-    *ll = hcl;
 
     return ngx_http_next_body_filter(r, out);
 }
