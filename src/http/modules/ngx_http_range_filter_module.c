@@ -692,7 +692,10 @@ ngx_http_range_test_overlapped(ngx_http_request_t *r,
     ngx_http_range_t  *range;
 
     if (ctx->offset) {
-        goto overlapped;
+//        goto overlapped;
+        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
+                "range in overlapped buffers; or non-zero offset: %O",
+                ctx->offset);
     }
 
     buf = in->buf;
