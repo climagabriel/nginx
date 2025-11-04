@@ -712,7 +712,7 @@ ngx_http_range_test_overlapped(ngx_http_request_t *r,
         }
     }
 
-    ctx->offset = ngx_buf_size(buf);
+    //ctx->offset = ngx_buf_size(buf);
 
     return NGX_OK;
 
