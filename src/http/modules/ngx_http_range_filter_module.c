@@ -669,7 +669,12 @@ ngx_http_range_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
     }
 
     if (ngx_http_range_test_overlapped(r, ctx, in) != NGX_OK) {
-       return NGX_ERROR; // because it ends request if one of the ranges' end is beyond the current buf size
+       return NGX_ERROR;
+       /* because it ends request if
+        * one of the ranges' end is beyond the current buf size
+        * or if ctx->offset is not 0, like if we're in the second slice
+        * so ctx->offset is the size of a slice
+        */
     }
 
     if (0) { return ngx_http_range_multipart_body(r, ctx, in); }
@@ -711,7 +716,9 @@ ngx_http_range_test_overlapped(ngx_http_request_t *r,
 overlapped:
 
     ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
-                  "range in overlapped buffers");
+                  "range in overlapped buffers; or non-zero offset: %O",
+                  ctx->offset);
+
 
     return NGX_ERROR;
 }
