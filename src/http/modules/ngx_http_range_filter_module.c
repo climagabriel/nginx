@@ -52,6 +52,7 @@ typedef struct {
     off_t        end;
     ngx_str_t    content_range;
     off_t        range_offset;
+    unsigned     boundaries_prepended:1;
 } ngx_http_range_t;
 
 
@@ -393,6 +394,7 @@ ngx_http_range_parse(ngx_http_request_t *r, ngx_http_range_filter_ctx_t *ctx,
             range->start = start;
             range->end = end;
             range->range_offset = 0;
+            range->boundaries_prepended = 0;
 
             if (size > NGX_MAX_OFF_T_VALUE - (end - start)) {
                 return NGX_HTTP_RANGE_NOT_SATISFIABLE;
@@ -1071,9 +1073,10 @@ ngx_http_range_huinglepart_body(ngx_http_request_t *r,
 {
     ngx_int_t          rc;
     ngx_chain_t       *out, *cl;
-    ngx_http_range_t  *range = NULL;
+    ngx_http_range_t  *range;
 
     out = NULL;
+    range = NULL;
 
     /*iterate over ranges and find unfulfilled ones */
     for (ngx_uint_t i = 0; i < ctx->ranges.nelts; i++) {
@@ -1121,7 +1124,7 @@ ngx_http_range_huinglepart_body(ngx_http_request_t *r,
 
 //    range = ctx->ranges.elts;
 //
-    if (range && range->range_offset == 0) {
+    if (range && range->boundaries_prepended == 0) {
     /* possible that the boundaries have beend added
      * but the offset is still ?
      * should the offset contain the boundaries ?
@@ -1214,6 +1217,7 @@ ngx_http_range_prepend_boundaries(ngx_http_request_t *r,
 
     rcl->buf = b;
 
+    range->boundaries_prepended = 1;
     /* the range data */
 
     b = ngx_calloc_buf(r->pool);
