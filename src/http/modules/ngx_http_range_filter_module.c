@@ -1100,10 +1100,7 @@ ngx_http_range_huinglepart_body(ngx_http_request_t *r,
             break;
         }
     }
-//    ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
-//                    "range: %*s",
-//                    range->content_range.len-4,
-//                    range->content_range.data);
+
     if (range) {
        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
                "range: %*s offset: %O",
@@ -1134,7 +1131,7 @@ ngx_http_range_huinglepart_body(ngx_http_request_t *r,
         ngx_http_range_append_data(r, range, in, &out);
     }
 
-    ngx_print_chainlink_to_stderr(r, out);
+    //ngx_print_chainlink_to_stderr(r, out);
 
     rc = ngx_http_next_body_filter(r, out);
     /*because out was appended to r->out/r->main->out by now*/

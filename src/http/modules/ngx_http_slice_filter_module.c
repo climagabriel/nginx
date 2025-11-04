@@ -215,7 +215,7 @@ ngx_http_slice_header_filter(ngx_http_request_t *r)
                    + r->headers_out.content_length_n;
 
     } else {
-        ctx->end = cr.complete_length; /*Content-Length: 420*/
+        ctx->end = cr.complete_length;
     }
 
     return rc;
@@ -494,6 +494,9 @@ ngx_http_slice_range_variable(ngx_http_request_t *r,
                                      ctx->start + (off_t) slcf->size - 1)
                          - p;
     }
+    ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0, "slice_range_variable: %*s",
+                    ctx->range.len,
+                    ctx->range.data);
 
     v->data = ctx->range.data;
     v->valid = 1;
