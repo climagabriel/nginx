@@ -1144,10 +1144,17 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
         b->file = buf->file;
 
         if (buf->in_file) {
-            b->file_pos = buf->file_pos + range[i].start - ctx->offset; /*- start*/
+            off_t remains = ((range[i].end - range[i].start) - range[i].range_offset);
+            off_t bufsize = ngx_buf_size(buf);
 
-            if (range[i].end <= (ctx->offset + ngx_buf_size(buf))) { /* <= last */
-                b->file_last = b->file_pos + (range[i].end - range[i].start);
+            if (range[i].start > range[i].range_offset) {
+                b->file_pos = buf->file_pos + range[i].start; /* - ctx->offset; - start*/
+            } else {
+                b->file_pos = buf->file_pos;
+            }
+
+            if (remains <= bufsize) { /* <= last */
+                b->file_last = b->file_pos + remains;
             } else {
                 b->file_last = buf->file_last;
                 /*TODO:*/
