@@ -207,7 +207,7 @@ ngx_http_slice_header_filter(ngx_http_request_t *r)
         ctx->end = r->headers_out.content_offset
                    + r->headers_out.content_length_n;
 
-        if (r->ranges) {
+        if (r->ranges) { /* TODO: */
             ctx->end = cr.complete_length;
         }
     } else {
@@ -225,6 +225,7 @@ ngx_http_slice_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
     ngx_chain_t                *cl;
     ngx_http_slice_ctx_t       *ctx;
     ngx_http_slice_loc_conf_t  *slcf;
+    ngx_http_range_t           *range; /*limit scope to if block ?*/
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_slice_filter_module);
 
@@ -256,6 +257,22 @@ ngx_http_slice_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
                       "missing slice response");
         return NGX_ERROR;
     }
+
+    /*ctx->start >= ctx->end logic fails for multiranges*/
+    if (r->ranges) {
+        range = r->ranges->elts;
+
+        if (range[r->ranges->nelts - 1].boundary_appended) {
+            ngx_http_set_ctx(r, NULL, ngx_http_slice_filter_module);
+            ngx_http_send_special(r, NGX_HTTP_LAST);
+            return rc;
+        }
+
+        for (ngx_uint_t i = 0; i < r->ranges->nelts; i++) {
+            /*TODO*/
+        }
+    }
+    /**/
 
     if (ctx->start >= ctx->end) { /* TODO: 1-2,4-16777210 */
         ngx_http_set_ctx(r, NULL, ngx_http_slice_filter_module);
