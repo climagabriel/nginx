@@ -378,7 +378,8 @@ ngx_http_range_parse(ngx_http_request_t *r, ngx_http_range_filter_ctx_t *ctx,
             range->start = start;
             range->end = end;
             range->range_offset = 0;
-            range->bounds_prepended = 0;
+            range->boundary_prepended = 0;
+            range->boundary_appended = 0;
 
             if (size > NGX_MAX_OFF_T_VALUE - (end - start)) {
                 return NGX_HTTP_RANGE_NOT_SATISFIABLE;
@@ -1074,19 +1075,18 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
     ngx_buf_t         *b, *buf;
     ngx_uint_t         i;
     ngx_chain_t       *out, *hcl, *rcl, *dcl, **ll;
-    ngx_http_range_t  *range;
-    ngx_uint_t         last_range;
+    ngx_http_range_t  *range, *last_range;
 
     ll = &out;
     buf = in->buf; //TODO:  if (ngx_buf_special(buf)) {}
     range = ctx->ranges.elts;
-    last_range = ctx->ranges.nelts - 1;
+    last_range = &range[ctx->ranges.nelts - 1];
 
     for (i = 0; i < ctx->ranges.nelts; i++) {
         if (range[i].range_offset >= (range[i].end - range[i].start)) {
             continue;
         }
-        if (!range[i].bounds_prepended) {
+        if (!range[i].boundary_prepended) {
             /*
              * The boundary header of the range:
              * CRLF
@@ -1183,12 +1183,12 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
         dcl->buf = b;
         dcl->next = NULL;
 
-        if (!range[i].bounds_prepended) {
+        if (!range[i].boundary_prepended) {
             *ll = hcl;
             hcl->next = rcl;
             rcl->next = dcl;
             ll = &dcl->next;
-            range[i].bounds_prepended = 1;
+            range[i].boundary_prepended = 1;
         } else {
             *ll = dcl;
             ll = &dcl->next;
@@ -1202,8 +1202,14 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
        //         range[i].range_offset);
     }
 
-    if (range[last_range].range_offset == (range[last_range].end - range[last_range].start)) {
+    if (last_range->range_offset == (last_range->end - last_range->start)) {
         /* the last boundary CRLF "--0123456789--" CRLF  */
+
+        if (last_range->boundary_appended) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                    "appending excess boundary to range \'%*s\'",
+                    last_range->content_range.len-4, last_range->content_range.data);
+        }
 
         b = ngx_calloc_buf(r->pool);
         if (b == NULL) {
@@ -1233,6 +1239,7 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
         hcl->next = NULL;
 
         *ll = hcl;
+        last_range->boundary_appended = 1;
     }
 
     return ngx_http_next_body_filter(r, out);
