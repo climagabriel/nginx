@@ -377,7 +377,7 @@ ngx_http_range_parse(ngx_http_request_t *r, ngx_http_range_filter_ctx_t *ctx,
 
             range->start = start;
             range->end = end;
-            range->range_offset = 0;
+            range->fulfilled = 0;
             range->boundary_prepended = 0;
             range->boundary_appended = 0;
 
@@ -712,7 +712,7 @@ ngx_http_range_test_overlapped(ngx_http_request_t *r,
                // ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0, "ngx_http_range_test_overlapped() range: \'%*s\' offset:%O start:%O last:%O ;",
                //         range[i].content_range.len-4,
                //         range[i].content_range.data,
-               //         range[i].range_offset, start, last);
+               //         range[i].fulfilled, start, last);
                // if (buf->in_file) {
                //     ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,"cache_file: \'%s\', %O", buf->file->name.data, ngx_buf_size(buf));
                // }
@@ -1068,22 +1068,37 @@ void ngx_print_chainlink(ngx_chain_t *chain) {
 
 }
 
+/* I think I can get rid of all ngx_buf_in_memory() conditons
+ * because I am interested in making multiranges work with slicing
+ * and slicing is stricly a cache feature
+ */
 static ngx_int_t
 ngx_http_range_multirange_body(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in)
 {
+
     ngx_buf_t         *b, *buf;
     ngx_uint_t         i;
     ngx_chain_t       *out, *hcl, *rcl, *dcl, **ll;
     ngx_http_range_t  *range, *last_range;
+    off_t              start, last;
 
     ll = &out;
     buf = in->buf; //TODO:  if (ngx_buf_special(buf)) {}
     range = ctx->ranges.elts;
     last_range = &range[ctx->ranges.nelts - 1];
 
+    start = ctx->offset; /* multiple of slice size or 0 */
+    last = ctx->offset + ngx_buf_size(buf);
+    /* I'll need to make sure I update ctx->offset when I move to next range
+     * and also handle correctly the case where the current in buf can serve
+     * several ranges
+     */
+
+    ctx->offset = last;
+
     for (i = 0; i < ctx->ranges.nelts; i++) {
-        off_t bytes_lacking = ((range[i].end - range[i].start) - range[i].range_offset);
+        off_t bytes_lacking = ((range[i].end - range[i].start) - range[i].fulfilled);
         if (bytes_lacking == 0) {
             continue;
         }
@@ -1144,35 +1159,30 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
         b->mmap = buf->mmap;
         b->file = buf->file;
 
-        if (buf->in_file) {
-            off_t bufsize = ngx_buf_size(buf);
+        if (range[i].end <= start || range[i].start >= last) {
 
-            if (range[i].start > range[i].range_offset) {
-                b->file_pos = buf->file_pos + range[i].start; /* - ctx->offset; - start*/
-            } else {
-                b->file_pos = buf->file_pos;
+            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                           "http range body skip");
+
+            if (buf->in_file) {
+                buf->file_pos = buf->file_last;
             }
 
-            if (bytes_lacking <= bufsize) { /* <= last */
-                b->file_last = b->file_pos + bytes_lacking;
-            } else {
-                b->file_last = buf->file_last;
-                /*TODO:*/
-               // ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_range_multirange_body() range: \'%*s\' ctx->offset:%O, buf_size:%O",
-               // range[i].content_range.len-4,
-               // range[i].content_range.data,
-               // ctx->offset,
-               // ngx_buf_size(buf));
-            }
+            //buf->pos = buf->last; // not sure I need it if all bufs are file
+            buf->sync = 1;
 
-            //if (b->file_last > buf->file_last) {
-            //    b->file_last -= (b->file_last - buf->file_last);
-            //}
+            continue; /* i.e. move onto next range */
         }
 
-        if (ngx_buf_in_memory(buf)) {
-            b->pos = buf->pos + (size_t) range[i].start;
-            b->last = buf->pos + (size_t) range[i].end;
+        if (range[i].start > start) {
+        /* works if slices up to the slice containing the start of this range were skipped */
+            b->file_pos = buf->file_pos + (range[i].start - start);
+        }
+
+        if (bytes_lacking <= ngx_buf_size(buf)) {
+            b->file_last = b->file_pos + bytes_lacking;
+        } else {
+            b->file_last = buf->file_last;
         }
 
         dcl = ngx_alloc_chain_link(r->pool);
@@ -1194,15 +1204,11 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
             ll = &dcl->next;
         }
 
-        range[i].range_offset += (b->file_last - b->file_pos);
-
-       // ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "ngx_http_range_multirange_body() range: \'%*s\' offset: %O",
-       //         range[i].content_range.len-4,
-       //         range[i].content_range.data,
-       //         range[i].range_offset);
+        range[i].fulfilled += (b->file_last - b->file_pos);
     }
 
-    if (last_range->range_offset == (last_range->end - last_range->start)) {
+    /*wrong, what if only your last range can be fulfilled from first slice*/
+    if (last_range->fulfilled == (last_range->end - last_range->start)) {
         /* the last boundary CRLF "--0123456789--" CRLF  */
 
         if (last_range->boundary_appended) {
