@@ -1083,10 +1083,11 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
     last_range = &range[ctx->ranges.nelts - 1];
 
     for (i = 0; i < ctx->ranges.nelts; i++) {
-        if (range[i].range_offset >= (range[i].end - range[i].start)) {
+        off_t bytes_lacking = ((range[i].end - range[i].start) - range[i].range_offset);
+        if (bytes_lacking == 0) {
             continue;
         }
-        if (!range[i].boundary_prepended) {
+        if (range[i].boundary_prepended) {/*goto: the range data */} else {
             /*
              * The boundary header of the range:
              * CRLF
@@ -1144,7 +1145,6 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
         b->file = buf->file;
 
         if (buf->in_file) {
-            off_t remains = ((range[i].end - range[i].start) - range[i].range_offset);
             off_t bufsize = ngx_buf_size(buf);
 
             if (range[i].start > range[i].range_offset) {
@@ -1153,8 +1153,8 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
                 b->file_pos = buf->file_pos;
             }
 
-            if (remains <= bufsize) { /* <= last */
-                b->file_last = b->file_pos + remains;
+            if (bytes_lacking <= bufsize) { /* <= last */
+                b->file_last = b->file_pos + bytes_lacking;
             } else {
                 b->file_last = buf->file_last;
                 /*TODO:*/
