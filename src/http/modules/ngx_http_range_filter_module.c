@@ -225,7 +225,7 @@ parse:
         return NGX_ERROR;
     }
 
-    ctx->offset = r->headers_out.content_offset;
+    ctx->offset = r->headers_out.content_offset; /* might move to/after ngx_http_range_multirange_header */
 
     ranges = /* r->single_range */ 0 ? 1 : clcf->max_ranges;
 
@@ -1265,6 +1265,7 @@ ngx_http_range_multirange_header(ngx_http_request_t *r,
     ngx_http_range_t   *range;
     ngx_atomic_uint_t   boundary;
 
+
     size = sizeof(CRLF "--") - 1 + NGX_ATOMIC_T_LEN
            + sizeof(CRLF "Content-Type: ") - 1
            + r->headers_out.content_type.len
@@ -1348,6 +1349,12 @@ ngx_http_range_multirange_header(ngx_http_request_t *r,
     len = sizeof(CRLF "--") - 1 + NGX_ATOMIC_T_LEN + sizeof("--" CRLF) - 1;
 
     range = ctx->ranges.elts;
+    r->headers_out.content_offset = range[0].start;
+    /*
+     * if/when you decide to be optimal and fulfill ranges
+     * out of the file you have open
+     * you can set it to the lowest range start
+     */
     for (i = 0; i < ctx->ranges.nelts; i++) {
 
         /* the size of the range: "SSSS-EEEE/TTTT" CRLF CRLF */
