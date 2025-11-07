@@ -1181,6 +1181,8 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
         if (range[i].start > start) {
         /* works if slices up to the slice containing the start of this range were skipped */
             b->file_pos = buf->file_pos + (range[i].start - start);
+        } else {
+            b->file_pos = buf->file_pos;
         }
 
         if (bytes_lacking <= ngx_buf_size(buf)) {
@@ -1206,6 +1208,10 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
         } else {
             *ll = dcl;
             ll = &dcl->next;
+        }
+
+        if (b->file_pos < buf->file_pos) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "b->file_pos < buf->file_pos; %O %O", b->file_pos, buf->file_pos);
         }
 
         range[i].fulfilled += (b->file_last - b->file_pos);
