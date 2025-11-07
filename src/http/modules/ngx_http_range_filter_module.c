@@ -1277,6 +1277,35 @@ ngx_http_range_multirange_header(ngx_http_request_t *r,
     ngx_http_range_t   *range;
     ngx_atomic_uint_t   boundary;
 
+    ngx_http_range_filter_ctx_t  *mctx;
+
+    if (r != r->main) {
+        mctx = ngx_http_get_module_ctx(r->main,
+                                       ngx_http_range_body_filter_module);
+        if (mctx) {
+            ctx->boundary_header.len = mctx->boundary_header.len;
+            ctx->boundary_header.data = mctx->boundary_header.data;
+        }
+
+        r->headers_out.content_offset = r->main->headers_out.content_offset;
+        r->headers_out.content_type.data = r->main->headers_out.content_type.data;
+        r->headers_out.content_type.len = r->main->headers_out.content_type.len;
+        r->headers_out.content_type_len = r->headers_out.content_type.len;
+        r->headers_out.content_offset = r->main->headers_out.content_offset; /* TODO */
+        r->headers_out.content_length_n = r->main->headers_out.content_length_n;
+
+        if (r->headers_out.content_length) {
+            r->headers_out.content_length->hash = 0;
+            r->headers_out.content_length = NULL;
+        }
+        if (r->headers_out.content_range) {
+            r->headers_out.content_range->hash = 0;
+            r->headers_out.content_range = NULL;
+        }
+
+        return ngx_http_next_header_filter(r);
+    }
+
 
     size = sizeof(CRLF "--") - 1 + NGX_ATOMIC_T_LEN
            + sizeof(CRLF "Content-Type: ") - 1
