@@ -1209,9 +1209,15 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
         }
 
         range[i].fulfilled += (b->file_last - b->file_pos);
+        break;
     }
 
-    /*wrong, what if only your last range can be fulfilled from first slice*/
+    /*wrong, what if only your last range can be fulfilled from first slice
+     * well then I shouldn't get clever for now and work with one slice+range at a time
+     * given x slices and y ranges,
+     * let's say 5 ranges and over 10 slices, how long will it take to complete at this rate?
+     * fml...
+     */
     if (last_range->fulfilled == (last_range->end - last_range->start)) {
         /* the last boundary CRLF "--0123456789--" CRLF  */
 

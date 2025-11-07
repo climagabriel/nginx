@@ -202,7 +202,7 @@ ngx_http_slice_header_filter(ngx_http_request_t *r)
         if (ctx->start + (off_t) slcf->size <= r->headers_out.content_offset) {
             ctx->start = slcf->size
                          * (r->headers_out.content_offset / slcf->size);
-        }
+        } /*ctx->start will end up = to the start of the next slice here*/
 
         ctx->end = r->headers_out.content_offset
                    + r->headers_out.content_length_n;
@@ -258,6 +258,7 @@ ngx_http_slice_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         return NGX_ERROR;
     }
 
+    slcf = ngx_http_get_module_loc_conf(r, ngx_http_slice_filter_module);
     /*ctx->start >= ctx->end logic fails for multiranges*/
     if (r->ranges) {
         range = r->ranges->elts;
@@ -268,11 +269,26 @@ ngx_http_slice_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
             return rc;
         }
 
+        /*let's try setting ctx->start to the start of the
+         * slice that contains the  beginning of the unfulfilled range
+         */
         for (ngx_uint_t i = 0; i < r->ranges->nelts; i++) {
-            /*TODO*/
+            off_t start = 0;
+            off_t bytes_lacking = ((range[i].end - range[i].start) - range[i].fulfilled);
+            if (bytes_lacking == 0) {
+                continue;
+            }
+            if (range[i].fulfilled == 0) {
+                start = range[i].start;
+            }
+            if (range[i].fulfilled) {
+                start = range[i].start + range[i].fulfilled;
+            }
+            ctx->start = slcf->size * (start / slcf->size);
+            break;
         }
     }
-    /**/
+    /***********************************************************/
 
     if (ctx->start >= ctx->end) { /* TODO: 1-2,4-16777210 */
         ngx_http_set_ctx(r, NULL, ngx_http_slice_filter_module);
@@ -293,7 +309,7 @@ ngx_http_slice_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     ngx_http_set_ctx(ctx->sr, ctx, ngx_http_slice_filter_module);
 
-    slcf = ngx_http_get_module_loc_conf(r, ngx_http_slice_filter_module);
+    //slcf = ngx_http_get_module_loc_conf(r, ngx_http_slice_filter_module); //moved
 
     ctx->range.len = ngx_sprintf(ctx->range.data, "bytes=%O-%O", ctx->start,
                                  ctx->start + (off_t) slcf->size - 1)
