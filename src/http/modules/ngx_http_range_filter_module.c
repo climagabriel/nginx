@@ -709,7 +709,7 @@ ngx_http_range_test_overlapped(ngx_http_request_t *r,
     buf = in->buf;
 
     if (!buf->last_buf) {
-        start = ctx->offset; /* ((ngx_str_t *)r->cache->keys.elts)[0] */
+        start = ctx->offset;
         last = ctx->offset + ngx_buf_size(buf);
 
         range = ctx->ranges.elts;
@@ -860,7 +860,7 @@ ngx_http_range_singlepart_body(ngx_http_request_t *r,
 
     rc = ngx_http_next_body_filter(r, out);
 
-    //ngx_print_chainlink_to_stderr(r, out);
+    ngx_print_chainlink_to_stderr(r, out);
 
     while (out) { /*because out was appended to r->out/r->main->out by now*/
         cl = out;
@@ -1493,10 +1493,9 @@ ngx_http_multirange_slice_range(ngx_http_request_t *r, ngx_http_slice_range_t **
 
     p++;
 
-    while (*p >= '0' && *p <= '9' && i <= proxy_key.len) {
+    while (*p >= '0' && *p <= '9' && ++i < proxy_key.len) {
         /*I'm assuming $slice_range is the last var in the cache key here*/
         sr->end = sr->end * 10 + (*p++ - '0');
-        i++;
     }
 
 
