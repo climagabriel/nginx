@@ -74,8 +74,7 @@ static ngx_int_t ngx_http_range_multirange_body(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in);
 static ngx_int_t ngx_http_range_multirange_header(ngx_http_request_t *r,
         ngx_http_range_filter_ctx_t *ctx);
-static ngx_int_t ngx_http_range_multirange_skip_slice(ngx_http_request_t *r,
-    ngx_http_range_filter_ctx_t *ctx);
+static off_t ngx_http_multirange_slice_range(ngx_http_request_t *r, ngx_http_slice_range_t **slice_range);
 
 
 
@@ -1089,6 +1088,7 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
     ngx_chain_t       *out, *hcl, *rcl, *dcl, **ll;
     ngx_http_range_t  *range, *last_range;
     off_t              start, last;
+    ngx_http_slice_range_t  *slice_range;
 
     ll = &out;
     buf = in->buf; //TODO:  if (ngx_buf_special(buf)) {}
@@ -1103,6 +1103,8 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
      */
 
     ctx->offset = last;
+    /*rc = */ ngx_http_multirange_slice_range(r, &slice_range);
+    if (slice_range->start) {};
 
     for (i = 0; i < ctx->ranges.nelts; i++) {
         off_t bytes_lacking = ((range[i].end - range[i].start) - range[i].fulfilled);
@@ -1166,37 +1168,39 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
         b->mmap = buf->mmap;
         b->file = buf->file;
 
-        if (range[i].end <= start || range[i].start >= last) {
+        if (range[i].fulfilled == 0 &&
+            (range[i].end <= slice_range->start || range[i].start >= slice_range->end))
+        {
+            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "multirange skip slice");
+            b->sync = 1;
+        }
+        else
+        {
 
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                           "http range body skip");
-
-            if (buf->in_file) {
-                buf->file_pos = buf->file_last;
+            if (range[i].start > start)
+            {
+                /* works if slices up to the slice containing the start of this range were skipped */
+                b->file_pos = buf->file_pos + (range[i].start - start);
+            }
+            else
+            {
+                b->file_pos = buf->file_pos;
             }
 
-            //buf->pos = buf->last; // not sure I need it if all bufs are file
-            buf->sync = 1;
+            if (bytes_lacking <= (buf->file_last - b->file_pos))
+            {
+                b->file_last = b->file_pos + bytes_lacking;
+            }
+            else
+            {
+                b->file_last = buf->file_last;
+            }
 
-            continue; /* i.e. move onto next range */
-        }
-
-        if (range[i].start > start) {
-        /* works if slices up to the slice containing the start of this range were skipped */
-            b->file_pos = buf->file_pos + (range[i].start - start);
-        } else {
-            b->file_pos = buf->file_pos;
-        }
-
-        if (bytes_lacking <= (buf->file_last - b->file_pos)) {
-            b->file_last = b->file_pos + bytes_lacking;
-        } else {
-            b->file_last = buf->file_last;
-        }
-
-        dcl = ngx_alloc_chain_link(r->pool);
-        if (dcl == NULL) {
-            return NGX_ERROR;
+            dcl = ngx_alloc_chain_link(r->pool);
+            if (dcl == NULL)
+            {
+                return NGX_ERROR;
+            }
         }
 
         dcl->buf = b;
@@ -1443,12 +1447,62 @@ ngx_http_range_multirange_header(ngx_http_request_t *r,
  * and skip it if it doesn't satisfy my first range.
  */
 
-static ngx_int_t
-ngx_http_range_multirange_skip_slice(ngx_http_request_t *r,
-    ngx_http_range_filter_ctx_t *ctx)
+static off_t
+ngx_http_multirange_slice_range(ngx_http_request_t *r, ngx_http_slice_range_t **slice_range)
 {
     /*
      * ((ngx_str_t *)r->cache->keys.elts)[0]
      *  "/f1024|bytes=500-99999"
      */
+    ngx_str_t   proxy_key, *keys;
+    u_char      *p;
+    size_t      i;
+    ngx_http_slice_range_t *sr;
+
+    *slice_range = ngx_pcalloc(r->pool, sizeof(ngx_http_slice_range_t));
+    sr = *slice_range;
+
+    keys = r->cache->keys.elts;
+    proxy_key = keys[0];
+
+
+    for (i = 0; i < proxy_key.len; i++) {
+        p = &proxy_key.data[i];
+        if (*p != 'b') {
+            continue;
+        }
+
+        if (i + 6 > proxy_key.len) {
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                    "slice range not found in http cache key: \"%V\"", &proxy_key);
+            return NGX_ERROR;
+        }
+
+        if (ngx_strncmp(p, "bytes=", 6) == 0) {
+            i += 6;
+            p = &proxy_key.data[i];
+            break;
+        }
+    }
+
+    //while (*p >= '0' && *p <= '9') {
+    while (*p >= '0' && *p <= '9') {
+        sr->start = sr->start * 10 + (*p++ - '0');
+        i++;
+    }
+
+    p++;
+
+    while (*p >= '0' && *p <= '9' && i <= proxy_key.len) {
+        /*I'm assuming $slice_range is the last var in the cache key here*/
+        sr->end = sr->end * 10 + (*p++ - '0');
+        i++;
+    }
+
+
+    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+            "slice_range->start: %O | slice_range->end %O",
+            sr->start, sr->end);
+
+    return NGX_OK;
 }
