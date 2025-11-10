@@ -70,11 +70,12 @@ static ngx_int_t ngx_http_range_singlepart_body(ngx_http_request_t *r,
 static ngx_int_t ngx_http_range_multipart_body(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in);
 
-static ngx_int_t ngx_http_range_multirange_body(ngx_http_request_t *r,
+static ngx_int_t ngx_http_multirange_body(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in);
-static ngx_int_t ngx_http_range_multirange_header(ngx_http_request_t *r,
+static ngx_int_t ngx_http_multirange_header(ngx_http_request_t *r,
         ngx_http_range_filter_ctx_t *ctx);
-static off_t ngx_http_multirange_slice_range(ngx_http_request_t *r, ngx_http_slice_range_t **slice_range);
+static off_t ngx_http_multirange_slice_range(ngx_http_request_t *r,
+        ngx_http_slice_range_t **slice_range);
 
 
 
@@ -227,7 +228,7 @@ parse:
         return NGX_ERROR;
     }
 
-    ctx->offset = r->headers_out.content_offset; /* might move to/after ngx_http_range_multirange_header */
+    ctx->offset = r->headers_out.content_offset; /* might move to/after ngx_http_multirange_header */
 
     ranges = /* r->single_range */ 0 ? 1 : clcf->max_ranges;
 
@@ -244,7 +245,7 @@ parse:
         }
 
         if (0) { return ngx_http_range_multipart_header(r, ctx); } else {
-        return ngx_http_range_multirange_header(r, ctx); }
+        return ngx_http_multirange_header(r, ctx); }
 
     case NGX_HTTP_RANGE_NOT_SATISFIABLE:
         return ngx_http_range_not_satisfiable(r);
@@ -676,17 +677,12 @@ ngx_http_range_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         return ngx_http_next_body_filter(r, in);
     }
 
-    if (ngx_http_range_test_overlapped(r, ctx, in) != NGX_OK) {
-       return NGX_ERROR;
-       /* because it ends request if
-        * one of the ranges' end is beyond the current buf size
-        * or if ctx->offset is not 0, like if we're in the second slice
-        * so ctx->offset is the size of a slice
-        */
-    }
+   if (0 && ngx_http_range_test_overlapped(r, ctx, in) != NGX_OK) {
+      return NGX_ERROR;
+   }
 
     if (0) { return ngx_http_range_multipart_body(r, ctx, in); }
-    return ngx_http_range_multirange_body(r, ctx, in);
+    return ngx_http_multirange_body(r, ctx, in);
 }
 
 
@@ -700,10 +696,7 @@ ngx_http_range_test_overlapped(ngx_http_request_t *r,
     ngx_http_range_t  *range;
 
     if (ctx->offset) {
-//        goto overlapped;
-        ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
-                "ngx_http_range_test_overlapped(): non-zero offset: %O",
-                ctx->offset);
+        goto overlapped;
     }
 
     buf = in->buf;
@@ -715,30 +708,21 @@ ngx_http_range_test_overlapped(ngx_http_request_t *r,
         range = ctx->ranges.elts;
         for (i = 0; i < ctx->ranges.nelts; i++) {
             if (start > range[i].start || last < range[i].end) {
-               // ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0, "ngx_http_range_test_overlapped() range: \'%*s\' offset:%O start:%O last:%O ;",
-               //         range[i].content_range.len-4,
-               //         range[i].content_range.data,
-               //         range[i].fulfilled, start, last);
-               // if (buf->in_file) {
-               //     ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,"cache_file: \'%s\', %O", buf->file->name.data, ngx_buf_size(buf));
-               // }
-                continue;
+                goto overlapped;
             }
         }
     }
 
-    //ctx->offset = ngx_buf_size(buf);
+    ctx->offset = ngx_buf_size(buf);
 
     return NGX_OK;
 
-//overlapped:
-//
-//    ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
-//                  "range in overlapped buffers; or non-zero offset: %O",
-//                  ctx->offset);
-//
-//
-//    return NGX_ERROR;
+overlapped:
+
+    ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
+                  "range in overlapped buffers");
+
+    return NGX_ERROR;
 }
 
 
@@ -1079,7 +1063,7 @@ void ngx_print_chainlink(ngx_chain_t *chain) {
  * and slicing is stricly a cache feature
  */
 static ngx_int_t
-ngx_http_range_multirange_body(ngx_http_request_t *r,
+ngx_http_multirange_body(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in)
 {
 
@@ -1170,37 +1154,33 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
 
         if (range[i].fulfilled == 0 &&
             (range[i].end <= slice_range->start || range[i].start >= slice_range->end))
+            /* skip this slice, 1st slice opened by default */
         {
             ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "multirange skip slice");
-            b->sync = 1;
+            *ll = hcl;
+            hcl->next = rcl;
+            rcl->next = NULL;
+            ll = &rcl->next;
+            range[i].boundary_prepended = 1;
+            break;
         }
-        else
-        {
 
-            if (range[i].start > start)
-            {
-                /* works if slices up to the slice containing the start of this range were skipped */
-                b->file_pos = buf->file_pos + (range[i].start - start);
-            }
-            else
-            {
-                b->file_pos = buf->file_pos;
-            }
+        if (range[i].start > start) {
+            /* works if slices up to the slice containing the start of this range were skipped */
+            b->file_pos = buf->file_pos + (range[i].start - start);
+        } else {
+            b->file_pos = buf->file_pos;
+        }
 
-            if (bytes_lacking <= (buf->file_last - b->file_pos))
-            {
-                b->file_last = b->file_pos + bytes_lacking;
-            }
-            else
-            {
-                b->file_last = buf->file_last;
-            }
+        if (bytes_lacking <= (buf->file_last - b->file_pos)) {
+            b->file_last = b->file_pos + bytes_lacking;
+        } else {
+            b->file_last = buf->file_last;
+        }
 
-            dcl = ngx_alloc_chain_link(r->pool);
-            if (dcl == NULL)
-            {
-                return NGX_ERROR;
-            }
+        dcl = ngx_alloc_chain_link(r->pool);
+        if (dcl == NULL) {
+            return NGX_ERROR;
         }
 
         dcl->buf = b;
@@ -1225,11 +1205,11 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
         break;
     }
 
-    /*wrong, what if only your last range can be fulfilled from first slice
-     * well then I shouldn't get clever for now and work with one slice+range at a time
-     * given x slices and y ranges,
-     * let's say 5 ranges and over 10 slices, how long will it take to complete at this rate?
-     * fml...
+    /*
+     * What if only your last range can be fulfilled from first slice?
+     * Don't get clever and work with one range at a time for now.
+     * Even if it means opening the same slice multiple times.
+     * Because the client is dumb as a brick and requested overlapping ranges.
      */
     if (last_range->fulfilled == (last_range->end - last_range->start)) {
         /* the last boundary CRLF "--0123456789--" CRLF  */
@@ -1275,7 +1255,7 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
 }
 
 static ngx_int_t
-ngx_http_range_multirange_header(ngx_http_request_t *r,
+ngx_http_multirange_header(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx)
 {
     off_t               len;
@@ -1450,10 +1430,7 @@ ngx_http_range_multirange_header(ngx_http_request_t *r,
 static off_t
 ngx_http_multirange_slice_range(ngx_http_request_t *r, ngx_http_slice_range_t **slice_range)
 {
-    /*
-     * ((ngx_str_t *)r->cache->keys.elts)[0]
-     *  "/f1024|bytes=500-99999"
-     */
+    /* ((ngx_str_t *)r->cache->keys.elts)[0] ; eg:"/f1024|bytes=500-99999" */
     ngx_str_t   proxy_key, *keys;
     u_char      *p;
     size_t      i;
@@ -1485,7 +1462,6 @@ ngx_http_multirange_slice_range(ngx_http_request_t *r, ngx_http_slice_range_t **
         }
     }
 
-    //while (*p >= '0' && *p <= '9') {
     while (*p >= '0' && *p <= '9') {
         sr->start = sr->start * 10 + (*p++ - '0');
         i++;
@@ -1493,13 +1469,13 @@ ngx_http_multirange_slice_range(ngx_http_request_t *r, ngx_http_slice_range_t **
 
     p++;
 
+    /*assuming $slice_range is the last var in the cache key here*/
     while (*p >= '0' && *p <= '9' && ++i < proxy_key.len) {
-        /*I'm assuming $slice_range is the last var in the cache key here*/
         sr->end = sr->end * 10 + (*p++ - '0');
     }
 
 
-    ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "slice_range->start: %O | slice_range->end %O",
             sr->start, sr->end);
 
