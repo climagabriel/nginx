@@ -74,7 +74,7 @@ static ngx_int_t ngx_http_multirange_body(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in);
 static ngx_int_t ngx_http_multirange_header(ngx_http_request_t *r,
         ngx_http_range_filter_ctx_t *ctx);
-static off_t ngx_http_multirange_slice_range(ngx_http_request_t *r,
+static ngx_int_t ngx_http_multirange_slice_range(ngx_http_request_t *r,
         ngx_http_slice_range_t **slice_range);
 
 
@@ -654,6 +654,7 @@ static ngx_int_t
 ngx_http_range_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 {
     ngx_http_range_filter_ctx_t  *ctx;
+    ngx_int_t rc;
 
     if (in == NULL) {
         return ngx_http_next_body_filter(r, in);
@@ -681,8 +682,12 @@ ngx_http_range_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
       return NGX_ERROR;
    }
 
-    if (0) { return ngx_http_range_multipart_body(r, ctx, in); }
-    return ngx_http_multirange_body(r, ctx, in);
+   rc =  ngx_http_multirange_body(r, ctx, in);
+   if (rc == NGX_DECLINED) {
+        return ngx_http_range_multipart_body(r, ctx, in);
+   } else {
+       return rc;
+   }
 }
 
 
@@ -1071,8 +1076,18 @@ ngx_http_multirange_body(ngx_http_request_t *r,
     ngx_uint_t         i;
     ngx_chain_t       *out, *hcl, *rcl, *dcl, **ll;
     ngx_http_range_t  *range, *last_range;
-    off_t              start, last;
+    off_t              start, last, rc;
     ngx_http_slice_range_t  *slice_range;
+
+
+    if (!r->cache) {
+        return NGX_DECLINED;
+    }
+
+    rc = ngx_http_multirange_slice_range(r, &slice_range);
+    if (rc != NGX_OK) {
+        return rc;
+    }
 
     ll = &out;
     buf = in->buf; //TODO:  if (ngx_buf_special(buf)) {}
@@ -1086,9 +1101,9 @@ ngx_http_multirange_body(ngx_http_request_t *r,
      * several ranges
      */
 
+
+
     ctx->offset = last;
-    /*rc = */ ngx_http_multirange_slice_range(r, &slice_range);
-    if (slice_range->start) {};
 
     for (i = 0; i < ctx->ranges.nelts; i++) {
         off_t bytes_lacking = ((range[i].end - range[i].start) - range[i].fulfilled);
@@ -1427,7 +1442,7 @@ ngx_http_multirange_header(ngx_http_request_t *r,
  * and skip it if it doesn't satisfy my first range.
  */
 
-static off_t
+static ngx_int_t
 ngx_http_multirange_slice_range(ngx_http_request_t *r, ngx_http_slice_range_t **slice_range)
 {
     /* ((ngx_str_t *)r->cache->keys.elts)[0] ; eg:"/f1024|bytes=500-99999" */
@@ -1460,6 +1475,10 @@ ngx_http_multirange_slice_range(ngx_http_request_t *r, ngx_http_slice_range_t **
             p = &proxy_key.data[i];
             break;
         }
+    }
+
+    if (i == proxy_key.len) { /* no bytes= found in key */
+        return NGX_DECLINED;
     }
 
     while (*p >= '0' && *p <= '9') {
