@@ -74,6 +74,9 @@ static ngx_int_t ngx_http_range_multirange_body(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in);
 static ngx_int_t ngx_http_range_multirange_header(ngx_http_request_t *r,
         ngx_http_range_filter_ctx_t *ctx);
+static ngx_int_t ngx_http_range_multirange_skip_slice(ngx_http_request_t *r,
+    ngx_http_range_filter_ctx_t *ctx);
+
 
 
 static ngx_int_t ngx_http_range_header_filter_init(ngx_conf_t *cf);
@@ -1432,3 +1435,20 @@ ngx_http_range_multirange_header(ngx_http_request_t *r,
     return ngx_http_next_header_filter(r);
 }
 
+/*
+ * I must check the current cache key
+ * because my changes to ngx_http_slice_get_start() break the case
+ * when the sum of ranges is > file size and we should  just reply 200.
+ * So, I will let ngx_http_slice_get_start() always give me the first slice
+ * and skip it if it doesn't satisfy my first range.
+ */
+
+static ngx_int_t
+ngx_http_range_multirange_skip_slice(ngx_http_request_t *r,
+    ngx_http_range_filter_ctx_t *ctx)
+{
+    /*
+     * ((ngx_str_t *)r->cache->keys.elts)[0]
+     *  "/f1024|bytes=500-99999"
+     */
+}
