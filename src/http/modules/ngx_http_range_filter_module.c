@@ -1185,7 +1185,7 @@ ngx_http_range_multirange_body(ngx_http_request_t *r,
             b->file_pos = buf->file_pos;
         }
 
-        if (bytes_lacking <= ngx_buf_size(buf)) {
+        if (bytes_lacking <= (buf->file_last - b->file_pos)) {
             b->file_last = b->file_pos + bytes_lacking;
         } else {
             b->file_last = buf->file_last;
