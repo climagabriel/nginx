@@ -1168,7 +1168,7 @@ ngx_http_multirange_body(ngx_http_request_t *r,
         b->file = buf->file;
 
         if (range[i].fulfilled == 0 &&
-            (range[i].end <= slice_range->start || range[i].start >= slice_range->end))
+            (range[i].end <= slice_range->start || range[i].start > slice_range->end))
             /* skip this slice, 1st slice opened by default */
         {
             ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "multirange skip slice");
