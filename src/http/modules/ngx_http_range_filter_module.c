@@ -1094,7 +1094,11 @@ ngx_http_multirange_body(ngx_http_request_t *r,
     range = ctx->ranges.elts;
     last_range = &range[ctx->ranges.nelts - 1];
 
-    start = ctx->offset; /* multiple of slice size or 0 */
+    start = ctx->offset;
+    /* multiple of slice size or 0
+     * or, if MISS, the ammount of bytes fetched from upstream
+     * in this event pipe loop
+     */
     last = ctx->offset + ngx_buf_size(buf);
     /* I'll need to make sure I update ctx->offset when I move to next range
      * and also handle correctly the case where the current in buf can serve
@@ -1167,11 +1171,28 @@ ngx_http_multirange_body(ngx_http_request_t *r,
         b->mmap = buf->mmap;
         b->file = buf->file;
 
-        if (range[i].fulfilled == 0 &&
-            (range[i].end <= slice_range->start || range[i].start > slice_range->end))
-            /* skip this slice, 1st slice opened by default */
+        /* skip this slice, 1st slice opened by default
+         * or MISS and this slice is slowly being appended to
+         */
+        if ((range[i].fulfilled == 0 && (range[i].end <= slice_range->start || range[i].start > slice_range->end))
+            || (range[i].end <= start || range[i].start >= last))
         {
             ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "multirange skip slice");
+            if (range[i].boundary_prepended) {
+                dcl = ngx_alloc_chain_link(r->pool);
+                if (dcl == NULL) {
+                    return NGX_ERROR;
+                }
+                b->sync = 1;
+                b->in_file = 0;
+                b->file = NULL;
+                dcl->buf = b;
+                dcl->next = NULL;
+                *ll = dcl;
+                ll = &dcl->next;
+                break;
+            }
+
             *ll = hcl;
             hcl->next = rcl;
             rcl->next = NULL;
