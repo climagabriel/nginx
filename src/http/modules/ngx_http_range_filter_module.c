@@ -1094,26 +1094,47 @@ ngx_http_multirange_body(ngx_http_request_t *r,
     range = ctx->ranges.elts;
     last_range = &range[ctx->ranges.nelts - 1];
 
-    start = ctx->offset;
-    /* multiple of slice size or 0
-     * or, if MISS, the ammount of bytes fetched from upstream
-     * in this event pipe loop
-     */
-    last = ctx->offset + ngx_buf_size(buf);
-    /* I'll need to make sure I update ctx->offset when I move to next range
-     * and also handle correctly the case where the current in buf can serve
-     * several ranges
-     */
-
-
-
-    ctx->offset = last;
 
     for (i = 0; i < ctx->ranges.nelts; i++) {
+
+        if (buf->temp_file) {
+            dcl = ngx_alloc_chain_link(r->pool);
+            if (dcl == NULL) {
+                return NGX_ERROR;
+            }
+
+            b = ngx_calloc_buf(r->pool);
+            if (b == NULL) {
+                return NGX_ERROR;
+            }
+
+            b->sync = 1;
+
+            dcl->buf = b;
+            dcl->next = NULL;
+            *ll = dcl;
+            ll = &dcl->next;
+            break;
+        }
+
         off_t bytes_lacking = ((range[i].end - range[i].start) - range[i].fulfilled);
         if (bytes_lacking == 0) {
             continue;
         }
+
+
+        start = ctx->offset;
+        /* multiple of slice size or 0
+         * or, if MISS, the ammount of bytes fetched from upstream
+         * in this event pipe loop
+         */
+        last = ctx->offset + ngx_buf_size(buf);
+        /* I'll need to make sure I update ctx->offset when I move to next range
+         * and also handle correctly the case where the current in buf can serve
+         * several ranges
+         */
+        ctx->offset = last;
+
         if (range[i].boundary_prepended) {/*goto: the range data */} else {
             /*
              * The boundary header of the range:
@@ -1174,8 +1195,8 @@ ngx_http_multirange_body(ngx_http_request_t *r,
         /* skip this slice, 1st slice opened by default
          * or MISS and this slice is slowly being appended to
          */
-        if ((range[i].fulfilled == 0 && (range[i].end <= slice_range->start || range[i].start > slice_range->end))
-            || (range[i].end <= start || range[i].start >= last))
+           // || (range[i].end <= start || range[i].start >= last))
+        if (range[i].fulfilled == 0 && (range[i].end <= slice_range->start || range[i].start > slice_range->end))
         {
             ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "multirange skip slice");
             if (range[i].boundary_prepended) {
