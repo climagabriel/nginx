@@ -10,14 +10,25 @@ boundary_pattern = rb'--[0-9]{20}'
 range_start = 'bytes='
 max_range = 16777216
 
-ORIGIN='http://pwnrzclb.net/'
-#CACHE='http://pwnrz-fe-preprod.gcdn.co/'
+#ORIGIN='http://pwnrzclb.net/'
+ORIGIN='http://127.0.0.1:8080/'
 CACHE='http://sliced/'
 
 while (comp):
 
     a , b = sorted(random.sample(range(max_range), 2))
     c , d = sorted(random.sample(range(max_range), 2))
+
+    choice = random.choice(['a', 'b', 'c', 'd'])
+    if choice == 'a':
+        a = ""
+    elif choice == 'b':
+        b = ""
+    elif choice == 'c':
+        c = ""
+    elif choice == 'd':
+        d = ""
+
 
     range_h = f"{range_start}{a}-{b},{c}-{d}"
     rheader = { 'Range' : range_h }
@@ -47,4 +58,5 @@ while (comp):
 
     print()
 
-    subprocess.run('find /mnt/disk1/cache/ -type f -delete', shell=True, check=True)
+    if (random.choice([True, False])):
+        subprocess.run('find /mnt/disk1/cache/ -type f -delete', shell=True, check=True)

@@ -1194,9 +1194,10 @@ ngx_http_multirange_body(ngx_http_request_t *r,
 
         /* skip this slice, 1st slice opened by default
          * or MISS and this slice is slowly being appended to
+         * but I decided to wait for slice to be full before working with it
          */
-           // || (range[i].end <= start || range[i].start >= last))
-        if (range[i].fulfilled == 0 && (range[i].end <= slice_range->start || range[i].start > slice_range->end))
+        //if (range[i].fulfilled == 0 &&
+        if  (range[i].end <= slice_range->start || range[i].start > slice_range->end)
         {
             ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "multirange skip slice");
             if (range[i].boundary_prepended) {
