@@ -4,42 +4,53 @@ import random
 import subprocess
 
 
-comp = True
-uri = 'f2p24b'
-boundary_pattern = rb'--[0-9]{20}'
-range_start = 'bytes='
-max_range = 16777216
-
-#ORIGIN='http://pwnrzclb.net/'
 ORIGIN='http://127.0.0.1:8080/'
 CACHE='http://sliced/'
+uri = 'f2p24b'
+origin_file_size = 16777216
+max_distance = origin_file_size//25
 
+boundary_pattern = rb'--[0-9]{20}'
+range_start = 'bytes='
+
+
+c = 0
+comp = True
 while (comp):
+    range_header = range_start
+    rangecount = random.randint(2,6)
 
-    a , b = sorted(random.sample(range(max_range), 2))
-    c , d = sorted(random.sample(range(max_range), 2))
+    for i in (range(rangecount)):
+        a = random.randint(1, origin_file_size - max_distance)
+        b = a + random.randint(0, max_distance)
 
-    choice = random.choice(['a', 'b', 'c', 'd'])
-    if choice == 'a':
-        a = ""
-    elif choice == 'b':
-        b = ""
-    elif choice == 'c':
-        c = ""
-    elif choice == 'd':
-        d = ""
+        #open ranges
+        # x-      (x ... last)
+        # -x (last-x ... last)
+        items = ['a', 'b', 'c']
+        weights = [0.1, 0.1, 0.8]
+        choice = random.choices(items, weights=weights, k=1)[0]
+        if choice == 'a':
+            a = ""
+        elif choice == 'b':
+            b = ""
+        elif choice == 'c':
+            c = ""
 
 
-    range_h = f"{range_start}{a}-{b},{c}-{d}"
-    rheader = { 'Range' : range_h }
+        range_header += f'{a}-{b}'
+        if ((i+1) < rangecount):
+            range_header += ','
 
-    print(range_h)
+
+
+    print(range_header)
+    rheader = { 'Range' : range_header }
 
     r = requests.get(f"{ORIGIN}{uri}", headers=rheader)
     rh = r.headers
     print(r.status_code, r.elapsed.total_seconds(), len(r.content), rh['Content-length'])
 
-    mrheader = { 'Range' : range_h, 'Host': 'sliced'}
     mr = requests.get(f"{CACHE}{uri}", headers=rheader)
     mrh = mr.headers
     print(mr.status_code, mr.elapsed.total_seconds(), len(mr.content), mrh['Cache'])#, mrh['traceparent'])
@@ -55,6 +66,7 @@ while (comp):
             originc.write(r.content)
         with open('/tmp/cache.txt', 'wb') as cachec:
             cachec.write(mr.content)
+        quit()
 
     print()
 
