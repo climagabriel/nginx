@@ -1203,9 +1203,9 @@ ngx_http_multirange_body(ngx_http_request_t *r,
                 (range[i].end < slice_range->start ||
                  range[i].start > slice_range->end)) /* was >= and caused bug */
         {
-            //ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-            if(slice_range->start == 0) {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+            /*ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, */
+            if(slice_range->start || range[i].fulfilled) {
+                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
                     "multirange skip slice %O-%O ; range:%O-%O",
                     slice_range->start, slice_range->end,
                     range[i].start, range[i].end);
