@@ -8,7 +8,7 @@ ORIGIN='http://127.0.0.1:8080/'
 CACHE='http://sliced/'
 uri = 'f2p24b'
 origin_file_size = 16777216
-max_distance = origin_file_size//25
+max_distance = origin_file_size//10
 
 boundary_pattern = rb'--[0-9]{20}'
 range_start = 'bytes='
