@@ -1062,8 +1062,8 @@ void ngx_print_chainlink(ngx_chain_t *chain) {
     }
 
 }
-
-/* I think I can get rid of all ngx_buf_in_memory() conditons
+/*
+ * I think I can get rid of all ngx_buf_in_memory() conditons
  * because I am interested in making multiranges work with slicing
  * and slicing is stricly a cache feature
  */
@@ -1071,17 +1071,24 @@ static ngx_int_t
 ngx_http_multirange_body(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in)
 {
-
-    ngx_buf_t         *b, *buf;
-    ngx_uint_t         i;
-    ngx_chain_t       *out, *hcl, *rcl, *dcl, **ll;
-    ngx_http_range_t  *range, *last_range;
-    off_t              start, last, rc;
-    ngx_http_slice_range_t  *slice_range;
-
+    ngx_chain_t              *out, *hcl, *rcl, *dcl, **ll;
+    off_t                     start, last, bytes_lacking;
+    ngx_http_range_t         *range, *last_range;
+    ngx_http_slice_range_t   *slice_range;
+    ngx_buf_t                *b, *buf;
+    ngx_uint_t                i;
+    ngx_int_t                 rc;
 
     if (!r->cache) {
         return NGX_DECLINED;
+    }
+
+    buf = in->buf;
+    if (!buf->file) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                "ngx_http_multirange_body() received non-file buf in->buf");
+        r->headers_out.status = NGX_HTTP_INTERNAL_SERVER_ERROR;
+        return NGX_ERROR;
     }
 
     rc = ngx_http_multirange_slice_range(r, &slice_range);
@@ -1090,7 +1097,6 @@ ngx_http_multirange_body(ngx_http_request_t *r,
     }
 
     ll = &out;
-    buf = in->buf; //TODO:  if (ngx_buf_special(buf)) {}
     range = ctx->ranges.elts;
     last_range = &range[ctx->ranges.nelts - 1];
 
@@ -1117,23 +1123,26 @@ ngx_http_multirange_body(ngx_http_request_t *r,
             break;
         }
 
-        off_t bytes_lacking = ((range[i].end - range[i].start) - range[i].fulfilled);
+        bytes_lacking = ((range[i].end - range[i].start) - range[i].fulfilled);
         if (bytes_lacking == 0) {
             continue;
         }
 
-
         start = ctx->offset;
         /* multiple of slice size or 0
          * or, if MISS, the ammount of bytes fetched from upstream
-         * in this event pipe loop
+         * in current event pipe loop; but I skip if temp_file
+         * because I can't rely on this offset if I accept incomplete slices
+         * and also skip slices when needed
          */
         last = ctx->offset + ngx_buf_size(buf);
-        /* I'll need to make sure I update ctx->offset when I move to next range
-         * and also handle correctly the case where the current in buf can serve
-         * several ranges
-         */
         ctx->offset = last;
+        /* Have to make sure I (need / don't need to) update ctx->offset when
+         * move to next range;
+         * And handle correctly the case where the current in buf can serve
+         * several ranges, if I ever get that far.
+         */
+
 
         if (range[i].boundary_prepended) {/*goto: the range data */} else {
             /*
@@ -1186,28 +1195,22 @@ ngx_http_multirange_body(ngx_http_request_t *r,
             return NGX_ERROR;
         }
 
-        b->in_file = buf->in_file;
-        b->temporary = buf->temporary;
-        b->memory = buf->memory;
-        b->mmap = buf->mmap;
-        b->file = buf->file;
-
         /* skip this slice, 1st slice opened by default
          * or MISS and this slice is slowly being appended to
-         * but I decided to wait for slice to be full before working with it
+         * (but now I skip temp_files, wait for slice to be full)
          */
-        //if (range[i].fulfilled == 0 &&
-        if  (range[i].end <= slice_range->start || range[i].start > slice_range->end)
+        if (range[i].fulfilled == 0 && /* this one may be superfluous */
+                (range[i].end <= slice_range->start ||
+                 range[i].start > slice_range->end)) /* was >= and caused bug */
         {
-            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "multirange skip slice");
+            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                                                       "multirange skip slice");
             if (range[i].boundary_prepended) {
                 dcl = ngx_alloc_chain_link(r->pool);
                 if (dcl == NULL) {
                     return NGX_ERROR;
                 }
                 b->sync = 1;
-                b->in_file = 0;
-                b->file = NULL;
                 dcl->buf = b;
                 dcl->next = NULL;
                 *ll = dcl;
@@ -1222,6 +1225,12 @@ ngx_http_multirange_body(ngx_http_request_t *r,
             range[i].boundary_prepended = 1;
             break;
         }
+
+        b->in_file = buf->in_file;
+        b->temporary = buf->temporary;
+        b->memory = buf->memory;
+        b->mmap = buf->mmap;
+        b->file = buf->file;
 
         if (range[i].start > start) {
             /* works if slices up to the slice containing the start of this range were skipped */
@@ -1256,7 +1265,11 @@ ngx_http_multirange_body(ngx_http_request_t *r,
         }
 
         if (b->file_pos < buf->file_pos) {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "b->file_pos < buf->file_pos; %O %O", b->file_pos, buf->file_pos);
+            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                    "multirange: b->file_pos(%O) < buf->file_pos(%O)",
+                    b->file_pos, buf->file_pos);
+            r->headers_out.status = NGX_HTTP_INTERNAL_SERVER_ERROR;
+            return NGX_ERROR;
         }
 
         range[i].fulfilled += (b->file_last - b->file_pos);
@@ -1264,7 +1277,7 @@ ngx_http_multirange_body(ngx_http_request_t *r,
     }
 
     /*
-     * What if only your last range can be fulfilled from first slice?
+     * what if only your last range can be fulfilled from first slice?
      * Don't get clever and work with one range at a time for now.
      * Even if it means opening the same slice multiple times.
      * Because the client is dumb as a brick and requested overlapping ranges.
@@ -1274,8 +1287,11 @@ ngx_http_multirange_body(ngx_http_request_t *r,
 
         if (last_range->boundary_appended) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                    "appending excess boundary to range \'%*s\'",
-                    last_range->content_range.len-4, last_range->content_range.data);
+                    "multirange: appending excess boundary to range \'%*s\'",
+                    last_range->content_range.len-4,
+                    last_range->content_range.data);
+            r->headers_out.status = NGX_HTTP_INTERNAL_SERVER_ERROR;
+            return NGX_ERROR;
         }
 
         b = ngx_calloc_buf(r->pool);
@@ -1478,17 +1494,18 @@ ngx_http_multirange_header(ngx_http_request_t *r,
 }
 
 /*
- * I must check the current cache key
- * because my changes to ngx_http_slice_get_start() break the case
- * when the sum of ranges is > file size and we should  just reply 200.
+ * Have to check the current cache key.
+ * Because making ngx_http_slice_get_start() handle ',' in range breaks the case
+ * when the sum of ranges is greater than file size and we should just serve 200.
  * So, I will let ngx_http_slice_get_start() always give me the first slice
  * and skip it if it doesn't satisfy my first range.
  */
 
 static ngx_int_t
-ngx_http_multirange_slice_range(ngx_http_request_t *r, ngx_http_slice_range_t **slice_range)
+ngx_http_multirange_slice_range(ngx_http_request_t *r,
+        ngx_http_slice_range_t **slice_range)
 {
-    /* ((ngx_str_t *)r->cache->keys.elts)[0] ; eg:"/f1024|bytes=500-99999" */
+    /* ((ngx_str_t *)r->cache->keys.elts)[0] ;ex: "/f1024|bytes=500-999" */
     ngx_str_t   proxy_key, *keys;
     u_char      *p;
     size_t      i;
@@ -1509,7 +1526,7 @@ ngx_http_multirange_slice_range(ngx_http_request_t *r, ngx_http_slice_range_t **
 
         if (i + 6 > proxy_key.len) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                    "slice range not found in http cache key: \"%V\"", &proxy_key);
+                "multirange: slice range not in cache key: \"%V\"", &proxy_key);
             return NGX_ERROR;
         }
 
@@ -1524,6 +1541,7 @@ ngx_http_multirange_slice_range(ngx_http_request_t *r, ngx_http_slice_range_t **
         return NGX_DECLINED;
     }
 
+
     while (*p >= '0' && *p <= '9') {
         sr->start = sr->start * 10 + (*p++ - '0');
         i++;
@@ -1531,7 +1549,12 @@ ngx_http_multirange_slice_range(ngx_http_request_t *r, ngx_http_slice_range_t **
 
     p++;
 
-    /*assuming $slice_range is the last var in the cache key here*/
+    /*
+     * I'm assuming $slice_range is the last var in the cache key here
+     * it still works so long as the next variable after it is not numeric
+     * $request_uri|$slice_range|$pid works
+     * $request_uri|$slice_range$pid breaks it
+     */
     while (*p >= '0' && *p <= '9' && ++i < proxy_key.len) {
         sr->end = sr->end * 10 + (*p++ - '0');
     }
