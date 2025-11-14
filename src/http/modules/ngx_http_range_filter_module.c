@@ -1104,23 +1104,24 @@ ngx_http_multirange_body(ngx_http_request_t *r,
     for (i = 0; i < ctx->ranges.nelts; i++) {
 
         if (buf->temp_file) {
-            dcl = ngx_alloc_chain_link(r->pool);
-            if (dcl == NULL) {
-                return NGX_ERROR;
-            }
+            return NGX_OK;
+           // dcl = ngx_alloc_chain_link(r->pool);
+           // if (dcl == NULL) {
+           //     return NGX_ERROR;
+           // }
 
-            b = ngx_calloc_buf(r->pool);
-            if (b == NULL) {
-                return NGX_ERROR;
-            }
+           // b = ngx_calloc_buf(r->pool);
+           // if (b == NULL) {
+           //     return NGX_ERROR;
+           // }
 
-            b->sync = 1;
+           // b->sync = 1;
 
-            dcl->buf = b;
-            dcl->next = NULL;
-            *ll = dcl;
-            ll = &dcl->next;
-            break;
+           // dcl->buf = b;
+           // dcl->next = NULL;
+           // *ll = dcl;
+           // ll = &dcl->next;
+           // break;
         }
 
         bytes_lacking = ((range[i].end - range[i].start) - range[i].fulfilled);

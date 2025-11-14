@@ -91,7 +91,7 @@ while (comp and not quit_received):
         quit()
 
 
-    if (random.choice([True, False])):
+    if (random.choice([True])):
         subprocess.run('find /mnt/disk1/cache/ -type f -delete', shell=True, check=True) #faster
        # for file_path in cache_dir.rglob('*'):
        #     if file_path.is_file():
