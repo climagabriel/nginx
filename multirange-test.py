@@ -23,9 +23,7 @@ CACHE='http://sliced/'
 uri = 'f2p24b'
 origin_file_size = 16777216
 #max_distance = origin_file_size//25
-max_distance = 10
-
-boundary_pattern = rb'--[<>a-zA-Z0-9]+'
+max_distance = 1000
 
 range_start = 'bytes='
 
@@ -63,48 +61,45 @@ while (comp and not quit_received):
 
     rheader = { 'Range' : range_header }
 
-    r = requests.get(f"{ORIGIN}{uri}", headers=rheader)
-    rh = r.headers
-    #print(r.status_code, r.elapsed.total_seconds(), len(r.content), rh['Content-length'])
-    if(r.status_code == 206):
+    origin_response = requests.get(f"{ORIGIN}{uri}", headers=rheader)
+    origin_response_headers = origin_response.headers
+    if ('boundary=' in origin_response_headers['content-type']):
+        origin_boundary_pattern = origin_response_headers['content-type'].split("boundary=")[1]
+        stripped_origin_response = re.sub(origin_boundary_pattern.encode(), b'BOUNDARY', origin_response.content.replace(b'\r\n', b''))
+
+
+    cache_response = requests.get(f"{CACHE}{uri}", headers=rheader)
+    cache_response_headers = cache_response.headers
+    if ('boundary=' in cache_response_headers['content-type']):
+        cache_boundary_pattern = cache_response_headers['content-type'].split("boundary=")[1]
+        stripped_cache_response = re.sub(cache_boundary_pattern.encode(), b'BOUNDARY', cache_response.content.replace(b'\r\n', b''))
+
+
+    if(cache_response.status_code == 206 == origin_response.status_code):
         two_o_sixes += 1
-    elif (r.status_code == 200):
+    elif (cache_response.status_code == 200 == origin_response.status_code):
         two_o_os += 1
     else:
-        print(r.status_code, range_header)
-        quit()
-
-    mr = requests.get(f"{CACHE}{uri}", headers=rheader)
-    mrh = mr.headers
-    #print(mr.status_code, mr.elapsed.total_seconds(), len(mr.content), mrh['Cache'])#, mrh['traceparent'])
-    if(mr.status_code == 206):
-        two_o_sixes += 1
-    elif (mr.status_code == 200):
-        two_o_os += 1
-    else:
-        print(mr.status_code, range_header)
+        print(cache_response.status_code, origin_response.status_code, range_header)
         quit()
 
 
-    modified_r = re.sub(boundary_pattern, b'--BOUNDARY', r.content)
-    modified_mr = re.sub(boundary_pattern, b'--BOUNDARY', mr.content)
-
-
-    comp =  modified_r == modified_mr
+    comp =  stripped_cache_response == stripped_origin_response
     #print(comp, '\n')
+
+    print('.', end='.', flush=True)
 
     if not (comp):
         print(range_header)
         with open('/tmp/origin.txt', 'wb') as originc:
-            originc.write(r.content)
+            originc.write(stripped_origin_response)
         with open('/tmp/cache.txt', 'wb') as cachec:
-            cachec.write(mr.content)
+            cachec.write(stripped_cache_response)
         quit()
-    print('.', end='.', flush=True)
 
 
     if (random.choice([True, False])):
-        subprocess.run('find /mnt/disk1/cache/ -type f -delete', shell=True, check=True) #faster
+        subprocess.run('find /mnt/disk*/cache/ -type f -delete', shell=True, check=True) #faster
        # for file_path in cache_dir.rglob('*'):
        #     if file_path.is_file():
        #         file_path.unlink()
