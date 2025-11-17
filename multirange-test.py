@@ -22,9 +22,11 @@ ORIGIN='http://127.0.0.1:8080/'
 CACHE='http://sliced/'
 uri = 'f2p24b'
 origin_file_size = 16777216
-max_distance = origin_file_size//25
+#max_distance = origin_file_size//25
+max_distance = 10
 
-boundary_pattern = rb'--[0-9]{20}'
+boundary_pattern = rb'--[<>a-zA-Z0-9]+'
+
 range_start = 'bytes='
 
 
@@ -59,12 +61,11 @@ while (comp and not quit_received):
 
 
 
-    print(range_header)
     rheader = { 'Range' : range_header }
 
     r = requests.get(f"{ORIGIN}{uri}", headers=rheader)
     rh = r.headers
-    print(r.status_code, r.elapsed.total_seconds(), len(r.content), rh['Content-length'])
+    #print(r.status_code, r.elapsed.total_seconds(), len(r.content), rh['Content-length'])
     if(r.status_code == 206):
         two_o_sixes += 1
     elif (r.status_code == 200):
@@ -75,23 +76,34 @@ while (comp and not quit_received):
 
     mr = requests.get(f"{CACHE}{uri}", headers=rheader)
     mrh = mr.headers
-    print(mr.status_code, mr.elapsed.total_seconds(), len(mr.content), mrh['Cache'])#, mrh['traceparent'])
+    #print(mr.status_code, mr.elapsed.total_seconds(), len(mr.content), mrh['Cache'])#, mrh['traceparent'])
+    if(mr.status_code == 206):
+        two_o_sixes += 1
+    elif (mr.status_code == 200):
+        two_o_os += 1
+    else:
+        print(mr.status_code, range_header)
+        quit()
 
 
     modified_r = re.sub(boundary_pattern, b'--BOUNDARY', r.content)
     modified_mr = re.sub(boundary_pattern, b'--BOUNDARY', mr.content)
+
+
     comp =  modified_r == modified_mr
-    print(comp, '\n')
+    #print(comp, '\n')
 
     if not (comp):
+        print(range_header)
         with open('/tmp/origin.txt', 'wb') as originc:
             originc.write(r.content)
         with open('/tmp/cache.txt', 'wb') as cachec:
             cachec.write(mr.content)
         quit()
+    print('.', end='.', flush=True)
 
 
-    if (random.choice([True])):
+    if (random.choice([True, False])):
         subprocess.run('find /mnt/disk1/cache/ -type f -delete', shell=True, check=True) #faster
        # for file_path in cache_dir.rglob('*'):
        #     if file_path.is_file():
