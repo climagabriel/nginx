@@ -1,35 +1,31 @@
 import requests
 import re
 import random
-import signal
 import subprocess
+import logging
 
-quit_received = False
+logging.basicConfig(level=logging.DEBUG)
+
 two_o_sixes = 0
 two_o_os = 0
 
-def signal_handler(sig, frame):
-    global quit_received
-    print("206/200: ", two_o_sixes, two_o_os)
-    quit_received = True
+ORIGIN='http://origin:8080/'
+#CACHE='http://sliced:80/'
+CACHE='http://unsliced:80/'
+uri = 'f1024'
 
-signal.signal(signal.SIGINT, signal_handler)
+origin_head_response = requests.head(f'{ORIGIN}{uri}')
+origin_file_size = int(origin_head_response.headers.get('Content-Length'))
+max_distance = origin_file_size//10
 
-ORIGIN='http://127.0.0.1:8080/'
-CACHE='http://sliced/'
-uri = 'f2p24b'
-origin_file_size = 16777216
-#max_distance = origin_file_size//25
-max_distance = 10000
-
-range_start = 'bytes='
-
+range_prefix = 'bytes='
 
 c = 0
 comp = True
 
-while (comp and not quit_received):
-    range_header = range_start
+while (comp):
+
+    range_header = range_prefix
     rangecount = random.randint(2,12)
 
     for i in (range(rangecount)):
@@ -50,7 +46,11 @@ while (comp and not quit_received):
             c = ""
 
 
-        range_header += f'{a}-{b}'
+        if (random.choice([True, False])):
+            range_header += f'{a}-{b}'
+        else:
+            range_header += f'{b}-{a}'
+
         if ((i+1) < rangecount):
             range_header += ','
 
@@ -78,8 +78,10 @@ while (comp and not quit_received):
     elif (cache_response.status_code == 200 == origin_response.status_code):
         two_o_os += 1
         comp =  cache_response.content == origin_response.content
+    elif (cache_response.status_code == 416 == origin_response.status_code):
+        print('\n',cache_response.status_code, origin_response.status_code, range_header, '\n')
     else:
-        print(cache_response.status_code, origin_response.status_code, range_header)
+        print('\n',cache_response.status_code, origin_response.status_code, range_header, '\n')
         quit()
 
 
