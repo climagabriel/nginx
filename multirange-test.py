@@ -12,7 +12,8 @@ two_o_os = 0
 ORIGIN='http://origin:8080/'
 #CACHE='http://sliced:80/'
 CACHE='http://unsliced:80/'
-uri = 'f1024'
+#uri = 'f1024'
+uri = 'f2p24b'
 
 origin_head_response = requests.head(f'{ORIGIN}{uri}')
 origin_file_size = int(origin_head_response.headers.get('Content-Length'))
@@ -88,7 +89,7 @@ while (comp):
     print('(', origin_response.status_code, rangecount, '),', end='', flush=True)
 
     if not (comp):
-        print(range_header)
+        print('\n',cache_response.status_code, origin_response.status_code, range_header, '\n')
         with open('/tmp/origin.txt', 'wb') as originc:
             originc.write(stripped_origin_response)
         with open('/tmp/cache.txt', 'wb') as cachec:
@@ -96,5 +97,5 @@ while (comp):
         quit()
 
 
-    if (random.choice([True, False])):
+    if (random.choice([True])):
         subprocess.run('find /mnt/disk*/cache/ -type f -delete', shell=True, check=True)
