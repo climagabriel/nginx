@@ -670,7 +670,7 @@ ngx_http_range_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         return ngx_http_next_body_filter(r, in);
     }
 
-    if (ngx_http_range_test_overlapped(r, ctx, in) != NGX_OK) {
+    if (0 && ngx_http_range_test_overlapped(r, ctx, in) != NGX_OK) {
         //return NGX_ERROR;
     }
 
@@ -1024,14 +1024,24 @@ ngx_http_multirange_body(ngx_http_request_t *r,
         return NGX_ERROR;
     }
 
+    rc = ngx_http_multirange_slice_range(r, &slice_range);
+
     if (buf->temp_file) {
         ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
                 "multirange: skipping temp cache file received \"%V\"",
                 &buf->file->name);
+
+        if (rc == NGX_DECLINED) {
+        ngx_http_request_t  *sr;
+            if (ngx_http_subrequest(r, &r->uri, &r->args, &sr, NULL,
+                                    NGX_HTTP_SUBREQUEST_CLONE) != NGX_OK) {
+                return NGX_ERROR;
+            }
+            ngx_http_set_ctx(sr, ctx, ngx_http_range_body_filter_module);
+        }
         return NGX_OK;
     }
 
-    rc = ngx_http_multirange_slice_range(r, &slice_range);
     if (rc != NGX_OK) {
         return rc;
     }
