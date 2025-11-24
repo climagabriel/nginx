@@ -4,15 +4,12 @@ import random
 import subprocess
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
+#logging.basicConfig(level=logging.DEBUG)
 
 two_o_sixes = 0
 two_o_os = 0
 
 ORIGIN='http://origin:8080/'
-#CACHE='http://sliced:80/'
-CACHE='http://unsliced:80/'
-#uri = 'f1024'
 uri = 'f2p24b'
 
 origin_head_response = requests.head(f'{ORIGIN}{uri}')
@@ -26,10 +23,14 @@ comp = True
 
 while (comp):
 
+    origin_response_content = ''
+    cache_response_content = ''
+    CACHE=random.choice(['http://sliced:80/', 'http://unsliced:80/'])
     range_header = range_prefix
     rangecount = random.randint(2,12)
 
     for i in (range(rangecount)):
+
         a = random.randint(1, origin_file_size - max_distance)
         b = a + random.randint(0, max_distance)
 
@@ -63,19 +64,24 @@ while (comp):
     origin_response_headers = origin_response.headers
     if ('boundary=' in origin_response_headers['content-type']):
         origin_boundary_pattern = origin_response_headers['content-type'].split("boundary=")[1]
-        stripped_origin_response = re.sub(origin_boundary_pattern.encode(), b'BOUNDARY', origin_response.content.replace(b'\r\n', b''))
+        origin_response_content = re.sub(origin_boundary_pattern.encode(), b'BOUNDARY', origin_response.content.replace(b'\r\n', b''))
+    else:
+        origin_response_content = origin_response.content.replace(b'\r\n', b'')
+
 
 
     cache_response = requests.get(f"{CACHE}{uri}", headers=rheader)
     cache_response_headers = cache_response.headers
     if ('boundary=' in cache_response_headers['content-type']):
         cache_boundary_pattern = cache_response_headers['content-type'].split("boundary=")[1]
-        stripped_cache_response = re.sub(cache_boundary_pattern.encode(), b'BOUNDARY', cache_response.content.replace(b'\r\n', b''))
+        cache_response_content = re.sub(cache_boundary_pattern.encode(), b'BOUNDARY', cache_response.content.replace(b'\r\n', b''))
+    else:
+        cache_response_content = cache_response.content.replace(b'\r\n', b'')
 
 
     if(cache_response.status_code == 206 == origin_response.status_code):
         two_o_sixes += 1
-        comp =  stripped_cache_response == stripped_origin_response
+        comp = cache_response_content == origin_response_content
     elif (cache_response.status_code == 200 == origin_response.status_code):
         two_o_os += 1
         comp =  cache_response.content == origin_response.content
@@ -86,16 +92,15 @@ while (comp):
         quit()
 
 
-    print('(', origin_response.status_code, rangecount, '),', end='', flush=True)
+    print('(', origin_response.status_code, rangecount,cache_response_headers['cache'], '),', end='', flush=True)
 
     if not (comp):
         print('\n',cache_response.status_code, origin_response.status_code, range_header, '\n')
         with open('/tmp/origin.txt', 'wb') as originc:
-            originc.write(stripped_origin_response)
+            originc.write(origin_response_content)
         with open('/tmp/cache.txt', 'wb') as cachec:
-            cachec.write(stripped_cache_response)
+            cachec.write(cache_response_content)
         quit()
 
-
-    if (random.choice([True])):
-        subprocess.run('find /mnt/disk*/cache/ -type f -delete', shell=True, check=True)
+    subprocess.run('find /mnt/disk*/cache/ -type f ! -name "*.*"  | shuf -n 10 | xargs rm -f ', shell=True, check=True)
+    #subprocess.run('find /mnt/disk*/cache/ -type f ! -name "*.*" | xargs rm -f ', shell=True, check=True)
