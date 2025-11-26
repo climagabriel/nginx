@@ -93,6 +93,7 @@ while (comp):
 
 
     print('(', origin_response.status_code, rangecount,cache_response_headers['cache'], '),', end='', flush=True)
+    #print('conn:',cache_response_headers['conn'], range_header)
 
     if not (comp):
         print('\n',cache_response.status_code, origin_response.status_code, range_header, '\n')
@@ -102,5 +103,6 @@ while (comp):
             cachec.write(cache_response_content)
         quit()
 
-    subprocess.run('find /mnt/disk*/cache/ -type f ! -name "*.*"  | shuf -n 10 | xargs rm -f ', shell=True, check=True)
-    #subprocess.run('find /mnt/disk*/cache/ -type f ! -name "*.*" | xargs rm -f ', shell=True, check=True)
+    #subprocess.run('find /mnt/disk*/cache/ -type f ! -name "*.*"  | shuf -n 10 | xargs rm -f ', shell=True, check=True)
+    if (random.choice([True, False])):
+        subprocess.run('find /mnt/disk*/cache/ -type f ! -name "*.*" | xargs rm -f ', shell=True, check=True)
