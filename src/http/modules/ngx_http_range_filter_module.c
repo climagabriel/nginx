@@ -45,7 +45,6 @@
  */
 
 
-
 typedef struct {
     off_t        offset;
     ngx_str_t    boundary_header;
@@ -60,8 +59,8 @@ static ngx_int_t ngx_http_range_singlepart_header(ngx_http_request_t *r,
 static ngx_int_t ngx_http_range_multipart_header(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx);
 static ngx_int_t ngx_http_range_not_satisfiable(ngx_http_request_t *r);
-static ngx_int_t ngx_http_range_test_overlapped(ngx_http_request_t *r,
-    ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in);
+//static ngx_int_t ngx_http_range_test_overlapped(ngx_http_request_t *r,
+//    ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in);
 static ngx_int_t ngx_http_range_singlepart_body(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in);
 static ngx_int_t ngx_http_range_multipart_body(ngx_http_request_t *r,
@@ -149,6 +148,7 @@ ngx_http_range_header_filter(ngx_http_request_t *r)
 {
     time_t                        if_range_time;
     ngx_str_t                    *if_range, *etag;
+    ngx_uint_t                    ranges;
     ngx_http_core_loc_conf_t     *clcf;
     ngx_http_range_filter_ctx_t  *ctx;
 
@@ -223,8 +223,9 @@ parse:
     }
 
     ctx->offset = r->headers_out.content_offset;
+    ranges = /* r->single_range */ 0 ? 1 : clcf->max_ranges;
 
-    switch (ngx_http_range_parse(r, ctx, clcf->max_ranges)) {
+    switch (ngx_http_range_parse(r, ctx, ranges)) {
 
     case NGX_OK:
         ngx_http_set_ctx(r, ctx, ngx_http_range_body_filter_module);
@@ -235,7 +236,6 @@ parse:
         if (ctx->ranges.nelts == 1) {
             return ngx_http_range_singlepart_header(r, ctx);
         }
-
         if (0) { return ngx_http_range_multipart_header(r, ctx); }
         return ngx_http_multirange_header(r, ctx);
 
@@ -406,11 +406,9 @@ ngx_http_range_parse(ngx_http_request_t *r, ngx_http_range_filter_ctx_t *ctx,
     if (size > content_length) {
         return NGX_DECLINED;
     }
-
     if (ctx->ranges.nelts > 1) {
         r->ranges =  &ctx->ranges;
     }
-
     return NGX_OK;
 }
 
@@ -670,10 +668,6 @@ ngx_http_range_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         return ngx_http_next_body_filter(r, in);
     }
 
-    if (0 && ngx_http_range_test_overlapped(r, ctx, in) != NGX_OK) {
-        //return NGX_ERROR;
-    }
-
    rc =  ngx_http_multirange_body(r, ctx, in);
    if (rc == NGX_DECLINED) {
         return ngx_http_range_multipart_body(r, ctx, in);
@@ -683,44 +677,44 @@ ngx_http_range_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 }
 
 
-static ngx_int_t
-ngx_http_range_test_overlapped(ngx_http_request_t *r,
-    ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in)
-{
-    off_t              start, last;
-    ngx_buf_t         *buf;
-    ngx_uint_t         i;
-    ngx_http_range_t  *range;
-
-    if (ctx->offset) {
-        goto overlapped;
-    }
-
-    buf = in->buf;
-
-    if (!buf->last_buf) {
-        start = ctx->offset;
-        last = ctx->offset + ngx_buf_size(buf);
-
-        range = ctx->ranges.elts;
-        for (i = 0; i < ctx->ranges.nelts; i++) {
-            if (start > range[i].start || last < range[i].end) {
-                goto overlapped;
-            }
-        }
-    }
-
-    ctx->offset = ngx_buf_size(buf);
-
-    return NGX_OK;
-
-overlapped:
-
-    ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
-                  "range in overlapped buffers");
-
-    return NGX_ERROR;
-}
+//static ngx_int_t
+//ngx_http_range_test_overlapped(ngx_http_request_t *r,
+//    ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in)
+//{
+//    off_t              start, last;
+//    ngx_buf_t         *buf;
+//    ngx_uint_t         i;
+//    ngx_http_range_t  *range;
+//
+//    if (ctx->offset) {
+//        goto overlapped;
+//    }
+//
+//    buf = in->buf;
+//
+//    if (!buf->last_buf) {
+//        start = ctx->offset;
+//        last = ctx->offset + ngx_buf_size(buf);
+//
+//        range = ctx->ranges.elts;
+//        for (i = 0; i < ctx->ranges.nelts; i++) {
+//            if (start > range[i].start || last < range[i].end) {
+//                goto overlapped;
+//            }
+//        }
+//    }
+//
+//    ctx->offset = ngx_buf_size(buf);
+//
+//    return NGX_OK;
+//
+//overlapped:
+//
+//    ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
+//                  "range in overlapped buffers");
+//
+//    return NGX_ERROR;
+//}
 
 
 static ngx_int_t
@@ -1030,8 +1024,7 @@ ngx_http_multirange_body(ngx_http_request_t *r,
         ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
                 "multirange: skipping temp cache file received \"%V\"",
                 &buf->file->name);
-
-        if (rc == NGX_DECLINED) {
+        if (rc == NGX_DECLINED && r == r->main) { /* bytes= not found in key by slice_range() */
         ngx_http_request_t  *sr;
             if (ngx_http_subrequest(r, &r->uri, &r->args, &sr, NULL,
                                     NGX_HTTP_SUBREQUEST_CLONE) != NGX_OK) {
@@ -1460,11 +1453,13 @@ ngx_http_multirange_slice_range(ngx_http_request_t *r,
     cache_length = r->cache->length - r->cache->body_start - 1;
 
     proxy_key = ((ngx_str_t *) r->cache->keys.elts)[0];
-    p = (u_char *) ngx_strstr(proxy_key.data, "bytes=");
+
+    p = (u_char *) ngx_strnstr(proxy_key.data, "bytes=", proxy_key.len);
 
     if (p == NULL) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                "multirange: slice range not in cache key: \"%V\"", &proxy_key);
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                "multirange: slice range not in cache key: \"%V\" (unsliced?)",
+                &proxy_key);
         return NGX_DECLINED;
     }
 
@@ -1496,12 +1491,6 @@ ngx_http_multirange_slice_range(ngx_http_request_t *r,
      * $request_uri|$slice_range$pid breaks it
      * EDIT: the cache_length condition saves that case
      */
-
-   if ((sr->end - sr->start) > cache_length) {
-       ngx_log_error(NGX_LOG_WARN, r->connection->log, 0,
-               "multirange: slice range:%O-%O(%O) > cache length:%O",
-               sr->start, sr->end, sr->end - sr->start, cache_length);
-   }
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "multirange: slice_range->start: %O | slice_range->end %O",
