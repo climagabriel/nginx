@@ -122,6 +122,7 @@ struct ngx_http_cache_s {
 
     unsigned                         stale_updating:1;
     unsigned                         stale_error:1;
+    size_t                           slice_size;
 };
 
 
