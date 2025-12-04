@@ -188,8 +188,6 @@ ngx_http_slice_header_filter(ngx_http_request_t *r)
 
     r->allow_ranges = 1;
     r->subrequest_ranges = 1;
-    r->single_range = 1;
-    /* use max_ranges 1; to disable multiranges explicitly */
 
     rc = ngx_http_next_header_filter(r);
 
@@ -232,6 +230,13 @@ ngx_http_slice_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
     ngx_http_slice_ctx_t       *ctx;
     ngx_http_slice_loc_conf_t  *slcf;
 
+
+    slcf = ngx_http_get_module_loc_conf(r, ngx_http_slice_filter_module);
+
+    if (r->cache && !r->cache->slice_size) {
+        r->cache->slice_size = slcf->size;
+    }
+
     ctx = ngx_http_get_module_ctx(r, ngx_http_slice_filter_module);
 
     if (ctx == NULL || r != r->main) {
@@ -263,7 +268,6 @@ ngx_http_slice_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         return NGX_ERROR;
     }
 
-    slcf = ngx_http_get_module_loc_conf(r, ngx_http_slice_filter_module);
 
     if (r->ranges) {
         ngx_http_range_t *range;

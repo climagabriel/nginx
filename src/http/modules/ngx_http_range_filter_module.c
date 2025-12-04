@@ -59,8 +59,6 @@ static ngx_int_t ngx_http_range_singlepart_header(ngx_http_request_t *r,
 static ngx_int_t ngx_http_range_multipart_header(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx);
 static ngx_int_t ngx_http_range_not_satisfiable(ngx_http_request_t *r);
-//static ngx_int_t ngx_http_range_test_overlapped(ngx_http_request_t *r,
-//    ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in);
 static ngx_int_t ngx_http_range_singlepart_body(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in);
 static ngx_int_t ngx_http_range_multipart_body(ngx_http_request_t *r,
@@ -236,6 +234,7 @@ parse:
         if (ctx->ranges.nelts == 1) {
             return ngx_http_range_singlepart_header(r, ctx);
         }
+
         if (0) { return ngx_http_range_multipart_header(r, ctx); }
         return ngx_http_multirange_header(r, ctx);
 
@@ -406,9 +405,11 @@ ngx_http_range_parse(ngx_http_request_t *r, ngx_http_range_filter_ctx_t *ctx,
     if (size > content_length) {
         return NGX_DECLINED;
     }
+
     if (ctx->ranges.nelts > 1) {
         r->ranges =  &ctx->ranges;
     }
+
     return NGX_OK;
 }
 
@@ -675,46 +676,6 @@ ngx_http_range_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
        return rc;
    }
 }
-
-
-//static ngx_int_t
-//ngx_http_range_test_overlapped(ngx_http_request_t *r,
-//    ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in)
-//{
-//    off_t              start, last;
-//    ngx_buf_t         *buf;
-//    ngx_uint_t         i;
-//    ngx_http_range_t  *range;
-//
-//    if (ctx->offset) {
-//        goto overlapped;
-//    }
-//
-//    buf = in->buf;
-//
-//    if (!buf->last_buf) {
-//        start = ctx->offset;
-//        last = ctx->offset + ngx_buf_size(buf);
-//
-//        range = ctx->ranges.elts;
-//        for (i = 0; i < ctx->ranges.nelts; i++) {
-//            if (start > range[i].start || last < range[i].end) {
-//                goto overlapped;
-//            }
-//        }
-//    }
-//
-//    ctx->offset = ngx_buf_size(buf);
-//
-//    return NGX_OK;
-//
-//overlapped:
-//
-//    ngx_log_error(NGX_LOG_ALERT, r->connection->log, 0,
-//                  "range in overlapped buffers");
-//
-//    return NGX_ERROR;
-//}
 
 
 static ngx_int_t
@@ -993,6 +954,14 @@ ngx_http_range_body_filter_init(ngx_conf_t *cf)
  * I think I can get rid of all ngx_buf_in_memory() conditons
  * because I am interested in making multiranges work with slicing
  * and slicing is stricly a cache feature
+ *
+ * P.S. I can't. Even with caching there's all kinds of situations where
+ * you'll be working with memory buffers.
+ * proxy_cache_min_uses
+ * proxy_cache_bypass
+ * proxy_cache_max_range_offset
+ *
+ * and probably others
  */
 static ngx_int_t
 ngx_http_multirange_body(ngx_http_request_t *r,
@@ -1012,10 +981,6 @@ ngx_http_multirange_body(ngx_http_request_t *r,
 
     buf = in->buf;
     if (!buf->file) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                "ngx_http_multirange_body() received non-file buf in->buf");
-        r->headers_out.status = NGX_HTTP_INTERNAL_SERVER_ERROR;
-        return NGX_ERROR;
     }
 
     rc = ngx_http_multirange_slice_range(r, &slice_range);
@@ -1433,7 +1398,6 @@ static ngx_int_t
 ngx_http_multirange_slice_range(ngx_http_request_t *r,
         ngx_http_slice_range_t **slice_range)
 {
-    off_t                    cache_length;
     ngx_str_t                proxy_key;
     ngx_http_slice_range_t  *sr;
     u_char                  *p;
@@ -1450,7 +1414,6 @@ ngx_http_multirange_slice_range(ngx_http_request_t *r,
     }
     sr = *slice_range;
 
-    cache_length = r->cache->length - r->cache->body_start - 1;
 
     proxy_key = ((ngx_str_t *) r->cache->keys.elts)[0];
 
@@ -1469,28 +1432,8 @@ ngx_http_multirange_slice_range(ngx_http_request_t *r,
         sr->start = sr->start * 10 + (*p++ - '0');
     }
 
-    p++; /* skip the '-' */
 
-    while (*p >= '0' && *p <= '9') {
-        sr->end = sr->end * 10 + (*p++ - '0');
-
-        if ((sr->end > sr->start) && (sr->end - sr->start) >= cache_length) {
-        /*
-         * slice range can be greater than the file, that's fine
-         * The configured slice size can be greater than an origin file.
-         * When $slice_range is generated the origin size file is unknown.
-         */
-            break; /* hmmm, think again? */
-        }
-    }
-
-    /*
-     * I'm assuming $slice_range is the last var in the cache key here
-     * it still works so long as the next variable after it is not numeric
-     * $request_uri|$slice_range|$pid works
-     * $request_uri|$slice_range$pid breaks it
-     * EDIT: the cache_length condition saves that case
-     */
+    sr->end = sr->start + (r->main->cache->slice_size - 1);
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
             "multirange: slice_range->start: %O | slice_range->end %O",
