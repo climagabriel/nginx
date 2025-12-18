@@ -645,7 +645,6 @@ static ngx_int_t
 ngx_http_range_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 {
     ngx_http_range_filter_ctx_t  *ctx;
-    ngx_int_t rc;
 
     if (in == NULL) {
         return ngx_http_next_body_filter(r, in);
@@ -669,12 +668,7 @@ ngx_http_range_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         return ngx_http_next_body_filter(r, in);
     }
 
-   rc =  ngx_http_multirange_body(r, ctx, in);
-   if (rc == NGX_DECLINED) {
-        return ngx_http_range_multipart_body(r, ctx, in);
-   } else {
-       return rc;
-   }
+   return ngx_http_multirange_body(r, ctx, in);
 }
 
 
@@ -967,61 +961,62 @@ static ngx_int_t
 ngx_http_multirange_body(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in)
 {
+    off_t                     start, last, bytes_lacking, range_offset;
     ngx_chain_t              *out, *hcl, *rcl, *dcl, **ll;
-    off_t                     start, last, bytes_lacking;
     ngx_http_range_t         *range, *last_range;
     ngx_http_slice_range_t   *slice_range;
     ngx_buf_t                *b, *buf;
     ngx_http_request_t       *sr;
-    ngx_int_t                 rc;
     ngx_uint_t                i;
 
     if (!r->cache) {
-        return NGX_DECLINED;
+        return ngx_http_range_multipart_body(r, ctx, in);
     }
 
     buf = in->buf;
+
     if (!buf->file) {
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                "ngx_http_multirange_body() received non-file buf in->buf");
-        r->headers_out.status = NGX_HTTP_INTERNAL_SERVER_ERROR;
-        return NGX_ERROR;
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                "multirange: received non-file buffer");
     }
 
     out = NULL;
     ll = &out;
-    range = ctx->ranges.elts;
-    last_range = &range[ctx->ranges.nelts - 1];
 
-    rc = ngx_http_multirange_slice_range(r, &slice_range);
+    /* MISS, unsliced, multirange, post request and wait for full cache file */
+    if (!r->main->cache->slice_size && buf->temp_file) {
 
-    if (buf->temp_file) {
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                "multirange: skip temp cache file \"%V\"", &buf->file->name);
 
         buf->file_pos = buf->file_last;
         buf->sync = 1;
 
-        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
-                "multirange: skipping temp cache file received \"%V\"",
-                &buf->file->name);
-        if (rc == NGX_DECLINED && r == r->main) {
-        /* 'bytes=' not found in key by slice_range(), so no slicing,
-         * but we'd still like to handle MISS multirange as 206
-         * so I post a subrequest and wait for this function to be called
-         * with the full cache file, not temp_file
-         */
+        if (r == r->main) {
             if (ngx_http_subrequest(r, &r->uri, &r->args, &sr, NULL,
                                     NGX_HTTP_SUBREQUEST_CLONE) != NGX_OK) {
                 return NGX_ERROR;
             }
             ngx_http_set_ctx(sr, ctx, ngx_http_range_body_filter_module);
+            ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                    "multirange: posted request");
         }
 
         return ngx_http_next_body_filter(r, out);
     }
 
-    if (rc != NGX_OK) {
-        return rc;
+    if (!r->main->cache->slice_size) {
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+                "multirange: fallback to multipart_body()");
+        return ngx_http_range_multipart_body(r, ctx, in);
+
     }
+
+    if (ngx_http_multirange_slice_range(r, &slice_range) != NGX_OK) {
+        return NGX_ERROR;
+    }
+
+    range = ctx->ranges.elts;
 
     for (i = 0; i < ctx->ranges.nelts; i++) {
 
@@ -1031,11 +1026,11 @@ ngx_http_multirange_body(ngx_http_request_t *r,
         }
 
         /* skip this slice, 1st slice opened by default */
-        if ( (range[i].end < slice_range->start ||
+        if ((range[i].end < slice_range->start ||
                     range[i].start > slice_range->end)) {
             /* 99% certain but leaving error just in case */
             if (slice_range->start || range[i].fulfilled) {
-                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
                     "multirange skip slice %O-%O ; range:%O-%O",
                     slice_range->start, slice_range->end,
                     range[i].start, range[i].end);
@@ -1050,22 +1045,21 @@ ngx_http_multirange_body(ngx_http_request_t *r,
             break;
         }
 
-
         start = ctx->offset;
-        /* multiple of slice size or 0
-         * or, if MISS, the ammount of bytes fetched from upstream
-         * in current event pipe loop; but I skip if temp_file
-         * because I can't rely on this offset if I accept incomplete slices
-         * and also skip slices when needed
-         */
         last = ctx->offset + ngx_buf_size(buf);
         ctx->offset = last;
-        /* Have to make sure I (need / don't need to) update ctx->offset when
-         * move to next range;
-         * And handle correctly the case where the current in buf can serve
-         * several ranges, if I ever get that far.
-         */
+        range_offset = range[i].start + range[i].fulfilled;
 
+        if (range[i].end < start || range[i].start > last ||
+                range_offset < start) { /* missed the train */
+            if (buf->in_file) {
+                buf->file_pos = buf->file_last;
+            }
+            buf->pos = buf->last;
+            buf->sync = 1;
+
+            break;
+        }
 
         if (range[i].boundary_prepended) {/*goto: the range data */} else {
             /*
@@ -1166,23 +1160,12 @@ ngx_http_multirange_body(ngx_http_request_t *r,
         break;
     }
 
-    /*
-     * what if only your last range can be fulfilled from first slice?
-     * Don't get clever and work with one range at a time for now.
-     * Even if it means opening the same slice multiple times.
-     * Because the client is dumb as a brick and requested overlapping ranges.
-     */
-    if (last_range->fulfilled == (last_range->end - last_range->start)) {
-        /* the last boundary CRLF "--0123456789--" CRLF  */
 
-        if (last_range->boundary_appended) {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                    "multirange: appending excess boundary to range \'%*s\'",
-                    last_range->content_range.len-4,
-                    last_range->content_range.data);
-            r->headers_out.status = NGX_HTTP_INTERNAL_SERVER_ERROR;
-            return NGX_ERROR;
-        }
+    last_range = &range[ctx->ranges.nelts - 1];
+
+    /* the last boundary CRLF "--0123456789--" CRLF  */
+    if (last_range->fulfilled == (last_range->end - last_range->start) &&
+            !last_range->boundary_appended) {
 
         b = ngx_calloc_buf(r->pool);
         if (b == NULL) {
