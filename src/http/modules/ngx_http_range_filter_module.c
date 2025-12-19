@@ -1017,6 +1017,7 @@ ngx_http_multirange_body(ngx_http_request_t *r,
     }
 
     range = ctx->ranges.elts;
+    last_range = &range[ctx->ranges.nelts - 1];
 
     for (i = 0; i < ctx->ranges.nelts; i++) {
 
@@ -1113,55 +1114,47 @@ ngx_http_multirange_body(ngx_http_request_t *r,
         }
 
         /* the range data */
-        b = ngx_calloc_buf(r->pool);
-        if (b == NULL) {
-            return NGX_ERROR;
-        }
-
         dcl = ngx_alloc_chain_link(r->pool);
         if (dcl == NULL) {
             return NGX_ERROR;
         }
 
-        b->in_file = buf->in_file;
-        b->temporary = buf->temporary;
-        b->memory = buf->memory;
-        b->mmap = buf->mmap;
-        b->file = buf->file;
-
         if (range[i].start > start) {
-            /* works if slices up to the slice containing the start of this range were skipped */
-            b->file_pos = buf->file_pos + (range[i].start - start);
-        } else {
-            b->file_pos = buf->file_pos;
+            if (buf->in_file) {
+                buf->file_pos += range[i].start - start;
+            }
+            if (ngx_buf_in_memory(buf)) {
+                buf->pos += (size_t) (range[i].start - start);
+            }
         }
 
-        if (bytes_lacking <= (buf->file_last - b->file_pos)) {
-            b->file_last = b->file_pos + bytes_lacking;
-        } else {
-            b->file_last = buf->file_last;
+        if (range[i].end <= last) {
+            if (buf->in_file) {
+                buf->file_last -= last - range[i].end;
+            }
+
+            if (ngx_buf_in_memory(buf)) {
+                buf->last -= (size_t) (last - range[i].end);
+            }
         }
 
-        dcl->buf = b;
+        dcl->buf = buf;
         dcl->next = NULL;
 
         *ll = dcl;
         ll = &dcl->next;
 
-        if (b->file_pos < buf->file_pos) {
-            ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                    "multirange: b->file_pos(%O) < buf->file_pos(%O)",
-                    b->file_pos, buf->file_pos);
-            r->headers_out.status = NGX_HTTP_INTERNAL_SERVER_ERROR;
-            return NGX_ERROR;
+        range[i].fulfilled += ngx_buf_size(buf);
+
+        bytes_lacking = ((range[i].end - range[i].start) - range[i].fulfilled);
+
+        if (bytes_lacking == 0 && last_range != &range[i]) {
+            dcl->buf->last_in_chain = 1;
         }
 
-        range[i].fulfilled += (b->file_last - b->file_pos);
         break;
     }
 
-
-    last_range = &range[ctx->ranges.nelts - 1];
 
     /* the last boundary CRLF "--0123456789--" CRLF  */
     if (last_range->fulfilled == (last_range->end - last_range->start) &&
@@ -1174,6 +1167,7 @@ ngx_http_multirange_body(ngx_http_request_t *r,
 
         b->temporary = 1;
         b->last_buf = 1;
+        b->last_in_chain = 1;
 
         b->pos = ngx_pnalloc(r->pool, sizeof(CRLF "--") - 1 + NGX_ATOMIC_T_LEN
                                       + sizeof("--" CRLF) - 1);
