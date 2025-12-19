@@ -962,7 +962,7 @@ ngx_http_multirange_body(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx, ngx_chain_t *in)
 {
     off_t                     start, last, bytes_lacking, range_offset;
-    ngx_chain_t              *out, *hcl, *rcl, *dcl, **ll;
+    ngx_chain_t              *out, *hcl, *rcl, *dcl, **ll, *cl;
     ngx_http_range_t         *range, *last_range;
     ngx_http_slice_range_t   *slice_range;
     ngx_buf_t                *b, *buf;
@@ -1111,6 +1111,20 @@ ngx_http_multirange_body(ngx_http_request_t *r,
             rcl->next = NULL;
             ll = &rcl->next;
             range[i].boundary_prepended = 1;
+
+            ngx_int_t rc = ngx_http_next_body_filter(r, out);
+
+            while (out) {
+                cl = out;
+                out = out->next;
+                ngx_free_chain(r->pool, cl);
+            }
+
+            if (rc != NGX_OK) {
+                return rc;
+            }
+            out = NULL;
+            ll = &out;
         }
 
         /* the range data */
