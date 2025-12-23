@@ -233,14 +233,14 @@ ngx_http_slice_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     slcf = ngx_http_get_module_loc_conf(r, ngx_http_slice_filter_module);
 
-    if (r->cache && !r->cache->slice_size) {
-        r->cache->slice_size = slcf->size;
-    }
-
     ctx = ngx_http_get_module_ctx(r, ngx_http_slice_filter_module);
 
     if (ctx == NULL || r != r->main) {
         return ngx_http_next_body_filter(r, in);
+    }
+
+    if (r->cache && !r->cache->slice_size) {
+        r->cache->slice_size = slcf->size;
     }
 
     for (cl = in; cl; cl = cl->next) {
