@@ -67,7 +67,6 @@
  */
 
 #include <sys/socket.h>
-#include <sys/epoll.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <unistd.h>
@@ -1555,52 +1554,11 @@ ngx_http_close_connection(ngx_connection_t *c)
  * round-trip + final recv-close), consistent with TLS 1.3 1-RTT handshake.
  * =================================================================== */
 
-static void
-ngx_epoll_process_events_sketch(int epfd)
-{
-    /*
-     * Simplified sketch of the executed epoll loop body.
-     * The actual nginx code is in src/event/modules/ngx_epoll_module.c.
-     *
-     * Core flow per iteration:
-     */
-    struct epoll_event events[512];
-    int n, i;
-    ngx_event_t *rev, *wev;
-    ngx_connection_t *c;
-
-    /* Block until events are ready (or timeout for timer expiry) */
-    n = epoll_wait(epfd, events, 512, -1 /* timer_delta_ms */);
-
-    for (i = 0; i < n; i++) {
-        c   = events[i].data.ptr;
-        rev = c->read;
-        wev = c->write;
-
-        /* Mark events as ready */
-        if (events[i].events & (EPOLLIN | EPOLLHUP | EPOLLERR)) {
-            rev->ready = 1;
-        }
-        if (events[i].events & EPOLLOUT) {
-            wev->ready = 1;
-        }
-
-        /*
-         * Dispatch to the current handler.
-         * During this benchmark the handlers in order per connection were:
-         *   1. ngx_event_accept          (EPOLLIN on listen socket)
-         *   2. ngx_http_ssl_handshake    (EPOLLIN, first peek)
-         *   3. ngx_ssl_handshake_handler (EPOLLIN/EPOLLOUT during TLS exchange)
-         *   4. ngx_http_wait_request_handler (EPOLLIN, post-handshake)
-         */
-        if (rev->active || rev->ready) {
-            rev->handler(rev);
-        }
-        if (wev->active || wev->ready) {
-            wev->handler(wev);
-        }
-    }
-}
+/*
+ * ngx_epoll_process_events_sketch — omitted (epoll not used in serial mode).
+ * In the real nginx this is the dispatch loop: epoll_wait() -> ev->handler(ev).
+ * The serial main() below replaces it with a plain accept() loop.
+ */
 
 
 /* ===================================================================
