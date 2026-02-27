@@ -1,0 +1,1461 @@
+12:23:06 qemu22-edge master /__w/nginx 
+
+# git-cleanup master pristine
++ '[' -f .vscode/launch.json ']'
++ save_launch=true
++ cp .vscode/launch.json /tmp/launch.json
++ git checkout master
+Already on 'master'
+Your branch is up to date with 'origin/master'.
++ git fetch origin
++ git reset --hard origin/master
+HEAD is now at ec714d52b SCGI: fixed passing CONTENT_LENGTH in unbuffered mode.
++ git clean -ffxd
+Removing .vscode/
++ git submodule update --init --recursive --force
++ git submodule foreach --recursive git submodule sync
++ git submodule foreach --recursive git clean -ffxd
++ git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+nothing to commit, working tree clean
++ '[' true = true ']'
++ mkdir .vscode/
++ cp /tmp/launch.json .vscode/launch.json
+12:23:10 qemu22-edge master /__w/nginx 
+
+# /__w/build-nginx/build-nginx-
+build-nginx-for-multirange_slicing.sh  build-nginx-quic.sh                    build-nginx-ssl.sh                     
+12:23:10 qemu22-edge master /__w/nginx 
+
+# cat /__w/build-nginx/build-nginx-ssl.sh 
+echo -en "\033]0;"build"\007"
+
+./auto/configure \
+--prefix=/tmp/nginx \
+--sbin-path=/tmp/nginx/usr/sbin/nginx \
+--modules-path=/tmp/nginx/usr/lib/nginx/modules \
+--conf-path=/tmp/nginx/etc/nginx/nginx.conf \
+--error-log-path=/tmp/nginx/var/log/nginx/error.log \
+--http-log-path=/tmp/nginx/var/log/nginx/access.log \
+--pid-path=/tmp/nginx/var/run/nginx.pid \
+--lock-path=/tmp/nginx/var/run/nginx.lock \
+--http-client-body-temp-path=/tmp/nginx/var/cache/nginx/client_temp \
+--http-proxy-temp-path=/tmp/nginx/var/cache/nginx/proxy_temp \
+--without-http_fastcgi_module \
+--without-http_uwsgi_module \
+--without-http_scgi_module \
+--without-http_grpc_module \
+--without-http_memcached_module \
+--with-http_slice_module \
+--with-http_ssl_module \
+--with-http_v2_module \
+--with-stream_ssl_module \
+--with-stream_ssl_preread_module \
+--with-debug \
+--user=root --group=root \
+--with-cc-opt='-O0 -fprofile-arcs -ftest-coverage' \
+--with-ld-opt='-lgcov --coverage'
+#--with-cc-opt='-O0'
+
+[ $? == 0 ] &&  make -j $(nproc)
+
+#--with-cc-opt='-O0 -fprofile-arcs -ftest-coverage'
+##-std=gnu17
+#
+#
+#mkdir -p /tmp/nginx/var/log/nginx
+#mkdir -p /tmp/nginx/var/cache/nginx/client_temp
+#mkdir -p /tmp/nginx/var/run
+#
+12:23:28 qemu22-edge master /__w/nginx 
+
+# /__w/build-nginx/build-nginx-ssl.sh 
+checking for OS
+ + Linux 6.3.5-6-generic x86_64
+checking for C compiler ... found
+ + using GNU C compiler
+ + gcc version: 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04.2) 
+checking for gcc -pipe switch ... found
+checking for --with-ld-opt="-lgcov --coverage" ... found
+checking for -Wl,-E switch ... found
+checking for gcc builtin atomic operations ... found
+checking for C99 variadic macros ... found
+checking for gcc variadic macros ... found
+checking for gcc builtin 64 bit byteswap ... found
+checking for unistd.h ... found
+checking for inttypes.h ... found
+checking for limits.h ... found
+checking for sys/filio.h ... not found
+checking for sys/param.h ... found
+checking for sys/mount.h ... found
+checking for sys/statvfs.h ... found
+checking for crypt.h ... found
+checking for Linux specific features
+checking for epoll ... found
+checking for EPOLLRDHUP ... found
+checking for EPOLLEXCLUSIVE ... found
+checking for eventfd() ... found
+checking for O_PATH ... found
+checking for sendfile() ... found
+checking for sendfile64() ... found
+checking for sys/prctl.h ... found
+checking for prctl(PR_SET_DUMPABLE) ... found
+checking for prctl(PR_SET_KEEPCAPS) ... found
+checking for capabilities ... found
+checking for crypt_r() ... found
+checking for sys/vfs.h ... found
+checking for BPF sockhash ... found
+checking for SO_COOKIE ... found
+checking for UDP_SEGMENT ... found
+checking for poll() ... found
+checking for /dev/poll ... not found
+checking for kqueue ... not found
+checking for crypt() ... not found
+checking for crypt() in libcrypt ... found
+checking for F_READAHEAD ... not found
+checking for posix_fadvise() ... found
+checking for O_DIRECT ... found
+checking for F_NOCACHE ... not found
+checking for directio() ... not found
+checking for statfs() ... found
+checking for statvfs() ... found
+checking for dlopen() ... found
+checking for sched_yield() ... found
+checking for sched_setaffinity() ... found
+checking for SO_SETFIB ... not found
+checking for SO_REUSEPORT ... found
+checking for SO_ACCEPTFILTER ... not found
+checking for SO_BINDANY ... not found
+checking for IP_TRANSPARENT ... found
+checking for IP_BINDANY ... not found
+checking for IP_BIND_ADDRESS_NO_PORT ... found
+checking for IP_RECVDSTADDR ... not found
+checking for IP_SENDSRCADDR ... not found
+checking for IP_PKTINFO ... found
+checking for IPV6_RECVPKTINFO ... found
+checking for IP_MTU_DISCOVER ... found
+checking for IPV6_MTU_DISCOVER ... found
+checking for IP_DONTFRAG ... not found
+checking for IPV6_DONTFRAG ... found
+checking for TCP_DEFER_ACCEPT ... found
+checking for TCP_KEEPIDLE ... found
+checking for TCP_FASTOPEN ... found
+checking for TCP_INFO ... found
+checking for accept4() ... found
+checking for int size ... 4 bytes
+checking for long size ... 8 bytes
+checking for long long size ... 8 bytes
+checking for void * size ... 8 bytes
+checking for uint32_t ... found
+checking for uint64_t ... found
+checking for sig_atomic_t ... found
+checking for sig_atomic_t size ... 4 bytes
+checking for socklen_t ... found
+checking for in_addr_t ... found
+checking for in_port_t ... found
+checking for rlim_t ... found
+checking for uintptr_t ... uintptr_t found
+checking for system byte ordering ... little endian
+checking for size_t size ... 8 bytes
+checking for off_t size ... 8 bytes
+checking for time_t size ... 8 bytes
+checking for AF_INET6 ... found
+checking for setproctitle() ... not found
+checking for pread() ... found
+checking for pwrite() ... found
+checking for pwritev() ... found
+checking for strerrordesc_np() ... found
+checking for localtime_r() ... found
+checking for clock_gettime(CLOCK_MONOTONIC) ... found
+checking for posix_memalign() ... found
+checking for memalign() ... found
+checking for mmap(MAP_ANON|MAP_SHARED) ... found
+checking for mmap("/dev/zero", MAP_SHARED) ... found
+checking for System V shared memory ... found
+checking for POSIX semaphores ... found
+checking for struct msghdr.msg_control ... found
+checking for ioctl(FIONBIO) ... found
+checking for ioctl(FIONREAD) ... found
+checking for struct tm.tm_gmtoff ... found
+checking for struct dirent.d_namlen ... not found
+checking for struct dirent.d_type ... found
+checking for sysconf(_SC_NPROCESSORS_ONLN) ... found
+checking for sysconf(_SC_LEVEL1_DCACHE_LINESIZE) ... found
+checking for openat(), fstatat() ... found
+checking for getaddrinfo() ... found
+checking for PCRE2 library ... found
+checking for OpenSSL library ... found
+checking for zlib library ... found
+creating objs/Makefile
+
+Configuration summary
+  + using system PCRE2 library
+  + using system OpenSSL library
+  + using system zlib library
+
+  nginx path prefix: "/tmp/nginx"
+  nginx binary file: "/tmp/nginx/usr/sbin/nginx"
+  nginx modules path: "/tmp/nginx/usr/lib/nginx/modules"
+  nginx configuration prefix: "/tmp/nginx/etc/nginx"
+  nginx configuration file: "/tmp/nginx/etc/nginx/nginx.conf"
+  nginx pid file: "/tmp/nginx/var/run/nginx.pid"
+  nginx error log file: "/tmp/nginx/var/log/nginx/error.log"
+  nginx http access log file: "/tmp/nginx/var/log/nginx/access.log"
+  nginx http client request body temporary files: "/tmp/nginx/var/cache/nginx/client_temp"
+  nginx http proxy temporary files: "/tmp/nginx/var/cache/nginx/proxy_temp"
+
+make -f objs/Makefile
+make[1]: Entering directory '/__w/nginx'
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/nginx.o \
+	src/core/nginx.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_log.o \
+	src/core/ngx_log.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_palloc.o \
+	src/core/ngx_palloc.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_array.o \
+	src/core/ngx_array.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_list.o \
+	src/core/ngx_list.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_hash.o \
+	src/core/ngx_hash.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_buf.o \
+	src/core/ngx_buf.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_queue.o \
+	src/core/ngx_queue.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_output_chain.o \
+	src/core/ngx_output_chain.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_string.o \
+	src/core/ngx_string.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_parse.o \
+	src/core/ngx_parse.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_parse_time.o \
+	src/core/ngx_parse_time.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_inet.o \
+	src/core/ngx_inet.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_file.o \
+	src/core/ngx_file.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_crc32.o \
+	src/core/ngx_crc32.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_murmurhash.o \
+	src/core/ngx_murmurhash.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_md5.o \
+	src/core/ngx_md5.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_sha1.o \
+	src/core/ngx_sha1.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_rbtree.o \
+	src/core/ngx_rbtree.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_radix_tree.o \
+	src/core/ngx_radix_tree.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_slab.o \
+	src/core/ngx_slab.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_times.o \
+	src/core/ngx_times.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_shmtx.o \
+	src/core/ngx_shmtx.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_connection.o \
+	src/core/ngx_connection.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_cycle.o \
+	src/core/ngx_cycle.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_spinlock.o \
+	src/core/ngx_spinlock.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_rwlock.o \
+	src/core/ngx_rwlock.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_cpuinfo.o \
+	src/core/ngx_cpuinfo.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_conf_file.o \
+	src/core/ngx_conf_file.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_module.o \
+	src/core/ngx_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_resolver.o \
+	src/core/ngx_resolver.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_open_file_cache.o \
+	src/core/ngx_open_file_cache.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_crypt.o \
+	src/core/ngx_crypt.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_proxy_protocol.o \
+	src/core/ngx_proxy_protocol.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_syslog.o \
+	src/core/ngx_syslog.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/event/ngx_event.o \
+	src/event/ngx_event.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/event/ngx_event_timer.o \
+	src/event/ngx_event_timer.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/event/ngx_event_posted.o \
+	src/event/ngx_event_posted.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/event/ngx_event_accept.o \
+	src/event/ngx_event_accept.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/event/ngx_event_udp.o \
+	src/event/ngx_event_udp.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/event/ngx_event_connect.o \
+	src/event/ngx_event_connect.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/event/ngx_event_pipe.o \
+	src/event/ngx_event_pipe.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/os/unix/ngx_time.o \
+	src/os/unix/ngx_time.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/os/unix/ngx_errno.o \
+	src/os/unix/ngx_errno.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/os/unix/ngx_alloc.o \
+	src/os/unix/ngx_alloc.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/os/unix/ngx_files.o \
+	src/os/unix/ngx_files.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/os/unix/ngx_socket.o \
+	src/os/unix/ngx_socket.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/os/unix/ngx_recv.o \
+	src/os/unix/ngx_recv.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/os/unix/ngx_readv_chain.o \
+	src/os/unix/ngx_readv_chain.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/os/unix/ngx_udp_recv.o \
+	src/os/unix/ngx_udp_recv.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/os/unix/ngx_send.o \
+	src/os/unix/ngx_send.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/os/unix/ngx_writev_chain.o \
+	src/os/unix/ngx_writev_chain.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/os/unix/ngx_udp_send.o \
+	src/os/unix/ngx_udp_send.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/os/unix/ngx_udp_sendmsg_chain.o \
+	src/os/unix/ngx_udp_sendmsg_chain.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/os/unix/ngx_channel.o \
+	src/os/unix/ngx_channel.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/os/unix/ngx_shmem.o \
+	src/os/unix/ngx_shmem.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/os/unix/ngx_process.o \
+	src/os/unix/ngx_process.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/os/unix/ngx_daemon.o \
+	src/os/unix/ngx_daemon.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/os/unix/ngx_setaffinity.o \
+	src/os/unix/ngx_setaffinity.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/os/unix/ngx_setproctitle.o \
+	src/os/unix/ngx_setproctitle.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/os/unix/ngx_posix_init.o \
+	src/os/unix/ngx_posix_init.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/os/unix/ngx_user.o \
+	src/os/unix/ngx_user.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/os/unix/ngx_dlopen.o \
+	src/os/unix/ngx_dlopen.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/os/unix/ngx_process_cycle.o \
+	src/os/unix/ngx_process_cycle.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/os/unix/ngx_linux_init.o \
+	src/os/unix/ngx_linux_init.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/event/modules/ngx_epoll_module.o \
+	src/event/modules/ngx_epoll_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/os/unix/ngx_linux_sendfile_chain.o \
+	src/os/unix/ngx_linux_sendfile_chain.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_bpf.o \
+	src/core/ngx_bpf.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/event/ngx_event_openssl.o \
+	src/event/ngx_event_openssl.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/event/ngx_event_openssl_cache.o \
+	src/event/ngx_event_openssl_cache.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/event/ngx_event_openssl_stapling.o \
+	src/event/ngx_event_openssl_stapling.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/src/core/ngx_regex.o \
+	src/core/ngx_regex.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/ngx_http.o \
+	src/http/ngx_http.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/ngx_http_core_module.o \
+	src/http/ngx_http_core_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/ngx_http_special_response.o \
+	src/http/ngx_http_special_response.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/ngx_http_request.o \
+	src/http/ngx_http_request.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/ngx_http_parse.o \
+	src/http/ngx_http_parse.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_log_module.o \
+	src/http/modules/ngx_http_log_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/ngx_http_request_body.o \
+	src/http/ngx_http_request_body.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/ngx_http_variables.o \
+	src/http/ngx_http_variables.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/ngx_http_script.o \
+	src/http/ngx_http_script.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/ngx_http_upstream.o \
+	src/http/ngx_http_upstream.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/ngx_http_upstream_round_robin.o \
+	src/http/ngx_http_upstream_round_robin.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/ngx_http_file_cache.o \
+	src/http/ngx_http_file_cache.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/ngx_http_huff_decode.o \
+	src/http/ngx_http_huff_decode.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/ngx_http_huff_encode.o \
+	src/http/ngx_http_huff_encode.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/ngx_http_write_filter_module.o \
+	src/http/ngx_http_write_filter_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/ngx_http_header_filter_module.o \
+	src/http/ngx_http_header_filter_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_chunked_filter_module.o \
+	src/http/modules/ngx_http_chunked_filter_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/v2/ngx_http_v2_filter_module.o \
+	src/http/v2/ngx_http_v2_filter_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_range_filter_module.o \
+	src/http/modules/ngx_http_range_filter_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_gzip_filter_module.o \
+	src/http/modules/ngx_http_gzip_filter_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/ngx_http_postpone_filter_module.o \
+	src/http/ngx_http_postpone_filter_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_ssi_filter_module.o \
+	src/http/modules/ngx_http_ssi_filter_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_charset_filter_module.o \
+	src/http/modules/ngx_http_charset_filter_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_userid_filter_module.o \
+	src/http/modules/ngx_http_userid_filter_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_headers_filter_module.o \
+	src/http/modules/ngx_http_headers_filter_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/ngx_http_copy_filter_module.o \
+	src/http/ngx_http_copy_filter_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_not_modified_filter_module.o \
+	src/http/modules/ngx_http_not_modified_filter_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_slice_filter_module.o \
+	src/http/modules/ngx_http_slice_filter_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/v2/ngx_http_v2.o \
+	src/http/v2/ngx_http_v2.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/v2/ngx_http_v2_table.o \
+	src/http/v2/ngx_http_v2_table.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/v2/ngx_http_v2_encode.o \
+	src/http/v2/ngx_http_v2_encode.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/v2/ngx_http_v2_module.o \
+	src/http/v2/ngx_http_v2_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_static_module.o \
+	src/http/modules/ngx_http_static_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_autoindex_module.o \
+	src/http/modules/ngx_http_autoindex_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_index_module.o \
+	src/http/modules/ngx_http_index_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_mirror_module.o \
+	src/http/modules/ngx_http_mirror_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_try_files_module.o \
+	src/http/modules/ngx_http_try_files_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_auth_basic_module.o \
+	src/http/modules/ngx_http_auth_basic_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_access_module.o \
+	src/http/modules/ngx_http_access_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_limit_conn_module.o \
+	src/http/modules/ngx_http_limit_conn_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_limit_req_module.o \
+	src/http/modules/ngx_http_limit_req_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_geo_module.o \
+	src/http/modules/ngx_http_geo_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_map_module.o \
+	src/http/modules/ngx_http_map_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_split_clients_module.o \
+	src/http/modules/ngx_http_split_clients_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_referer_module.o \
+	src/http/modules/ngx_http_referer_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_rewrite_module.o \
+	src/http/modules/ngx_http_rewrite_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_ssl_module.o \
+	src/http/modules/ngx_http_ssl_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_proxy_module.o \
+	src/http/modules/ngx_http_proxy_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_proxy_v2_module.o \
+	src/http/modules/ngx_http_proxy_v2_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_empty_gif_module.o \
+	src/http/modules/ngx_http_empty_gif_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_browser_module.o \
+	src/http/modules/ngx_http_browser_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_upstream_hash_module.o \
+	src/http/modules/ngx_http_upstream_hash_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_upstream_ip_hash_module.o \
+	src/http/modules/ngx_http_upstream_ip_hash_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_upstream_least_conn_module.o \
+	src/http/modules/ngx_http_upstream_least_conn_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_upstream_random_module.o \
+	src/http/modules/ngx_http_upstream_random_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_upstream_keepalive_module.o \
+	src/http/modules/ngx_http_upstream_keepalive_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs -I src/http -I src/http/modules -I src/http/v2 \
+	-o objs/src/http/modules/ngx_http_upstream_zone_module.o \
+	src/http/modules/ngx_http_upstream_zone_module.c
+cc -c -pipe  -O -W -Wall -Wpointer-arith -Wno-unused-parameter -Werror -g -O0 -fprofile-arcs -ftest-coverage -I src/core -I src/event -I src/event/modules -I src/event/quic -I src/os/unix -I objs \
+	-o objs/ngx_modules.o \
+	objs/ngx_modules.c
+sed -e "s|%%PREFIX%%|/tmp/nginx|" \
+	-e "s|%%PID_PATH%%|/tmp/nginx/var/run/nginx.pid|" \
+	-e "s|%%CONF_PATH%%|/tmp/nginx/etc/nginx/nginx.conf|" \
+	-e "s|%%ERROR_LOG_PATH%%|/tmp/nginx/var/log/nginx/error.log|" \
+	< docs/man/nginx.8 > objs/nginx.8
+cc -o objs/nginx \
+objs/src/core/nginx.o \
+objs/src/core/ngx_log.o \
+objs/src/core/ngx_palloc.o \
+objs/src/core/ngx_array.o \
+objs/src/core/ngx_list.o \
+objs/src/core/ngx_hash.o \
+objs/src/core/ngx_buf.o \
+objs/src/core/ngx_queue.o \
+objs/src/core/ngx_output_chain.o \
+objs/src/core/ngx_string.o \
+objs/src/core/ngx_parse.o \
+objs/src/core/ngx_parse_time.o \
+objs/src/core/ngx_inet.o \
+objs/src/core/ngx_file.o \
+objs/src/core/ngx_crc32.o \
+objs/src/core/ngx_murmurhash.o \
+objs/src/core/ngx_md5.o \
+objs/src/core/ngx_sha1.o \
+objs/src/core/ngx_rbtree.o \
+objs/src/core/ngx_radix_tree.o \
+objs/src/core/ngx_slab.o \
+objs/src/core/ngx_times.o \
+objs/src/core/ngx_shmtx.o \
+objs/src/core/ngx_connection.o \
+objs/src/core/ngx_cycle.o \
+objs/src/core/ngx_spinlock.o \
+objs/src/core/ngx_rwlock.o \
+objs/src/core/ngx_cpuinfo.o \
+objs/src/core/ngx_conf_file.o \
+objs/src/core/ngx_module.o \
+objs/src/core/ngx_resolver.o \
+objs/src/core/ngx_open_file_cache.o \
+objs/src/core/ngx_crypt.o \
+objs/src/core/ngx_proxy_protocol.o \
+objs/src/core/ngx_syslog.o \
+objs/src/event/ngx_event.o \
+objs/src/event/ngx_event_timer.o \
+objs/src/event/ngx_event_posted.o \
+objs/src/event/ngx_event_accept.o \
+objs/src/event/ngx_event_udp.o \
+objs/src/event/ngx_event_connect.o \
+objs/src/event/ngx_event_pipe.o \
+objs/src/os/unix/ngx_time.o \
+objs/src/os/unix/ngx_errno.o \
+objs/src/os/unix/ngx_alloc.o \
+objs/src/os/unix/ngx_files.o \
+objs/src/os/unix/ngx_socket.o \
+objs/src/os/unix/ngx_recv.o \
+objs/src/os/unix/ngx_readv_chain.o \
+objs/src/os/unix/ngx_udp_recv.o \
+objs/src/os/unix/ngx_send.o \
+objs/src/os/unix/ngx_writev_chain.o \
+objs/src/os/unix/ngx_udp_send.o \
+objs/src/os/unix/ngx_udp_sendmsg_chain.o \
+objs/src/os/unix/ngx_channel.o \
+objs/src/os/unix/ngx_shmem.o \
+objs/src/os/unix/ngx_process.o \
+objs/src/os/unix/ngx_daemon.o \
+objs/src/os/unix/ngx_setaffinity.o \
+objs/src/os/unix/ngx_setproctitle.o \
+objs/src/os/unix/ngx_posix_init.o \
+objs/src/os/unix/ngx_user.o \
+objs/src/os/unix/ngx_dlopen.o \
+objs/src/os/unix/ngx_process_cycle.o \
+objs/src/os/unix/ngx_linux_init.o \
+objs/src/event/modules/ngx_epoll_module.o \
+objs/src/os/unix/ngx_linux_sendfile_chain.o \
+objs/src/core/ngx_bpf.o \
+objs/src/event/ngx_event_openssl.o \
+objs/src/event/ngx_event_openssl_cache.o \
+objs/src/event/ngx_event_openssl_stapling.o \
+objs/src/core/ngx_regex.o \
+objs/src/http/ngx_http.o \
+objs/src/http/ngx_http_core_module.o \
+objs/src/http/ngx_http_special_response.o \
+objs/src/http/ngx_http_request.o \
+objs/src/http/ngx_http_parse.o \
+objs/src/http/modules/ngx_http_log_module.o \
+objs/src/http/ngx_http_request_body.o \
+objs/src/http/ngx_http_variables.o \
+objs/src/http/ngx_http_script.o \
+objs/src/http/ngx_http_upstream.o \
+objs/src/http/ngx_http_upstream_round_robin.o \
+objs/src/http/ngx_http_file_cache.o \
+objs/src/http/ngx_http_huff_decode.o \
+objs/src/http/ngx_http_huff_encode.o \
+objs/src/http/ngx_http_write_filter_module.o \
+objs/src/http/ngx_http_header_filter_module.o \
+objs/src/http/modules/ngx_http_chunked_filter_module.o \
+objs/src/http/v2/ngx_http_v2_filter_module.o \
+objs/src/http/modules/ngx_http_range_filter_module.o \
+objs/src/http/modules/ngx_http_gzip_filter_module.o \
+objs/src/http/ngx_http_postpone_filter_module.o \
+objs/src/http/modules/ngx_http_ssi_filter_module.o \
+objs/src/http/modules/ngx_http_charset_filter_module.o \
+objs/src/http/modules/ngx_http_userid_filter_module.o \
+objs/src/http/modules/ngx_http_headers_filter_module.o \
+objs/src/http/ngx_http_copy_filter_module.o \
+objs/src/http/modules/ngx_http_not_modified_filter_module.o \
+objs/src/http/modules/ngx_http_slice_filter_module.o \
+objs/src/http/v2/ngx_http_v2.o \
+objs/src/http/v2/ngx_http_v2_table.o \
+objs/src/http/v2/ngx_http_v2_encode.o \
+objs/src/http/v2/ngx_http_v2_module.o \
+objs/src/http/modules/ngx_http_static_module.o \
+objs/src/http/modules/ngx_http_autoindex_module.o \
+objs/src/http/modules/ngx_http_index_module.o \
+objs/src/http/modules/ngx_http_mirror_module.o \
+objs/src/http/modules/ngx_http_try_files_module.o \
+objs/src/http/modules/ngx_http_auth_basic_module.o \
+objs/src/http/modules/ngx_http_access_module.o \
+objs/src/http/modules/ngx_http_limit_conn_module.o \
+objs/src/http/modules/ngx_http_limit_req_module.o \
+objs/src/http/modules/ngx_http_geo_module.o \
+objs/src/http/modules/ngx_http_map_module.o \
+objs/src/http/modules/ngx_http_split_clients_module.o \
+objs/src/http/modules/ngx_http_referer_module.o \
+objs/src/http/modules/ngx_http_rewrite_module.o \
+objs/src/http/modules/ngx_http_ssl_module.o \
+objs/src/http/modules/ngx_http_proxy_module.o \
+objs/src/http/modules/ngx_http_proxy_v2_module.o \
+objs/src/http/modules/ngx_http_empty_gif_module.o \
+objs/src/http/modules/ngx_http_browser_module.o \
+objs/src/http/modules/ngx_http_upstream_hash_module.o \
+objs/src/http/modules/ngx_http_upstream_ip_hash_module.o \
+objs/src/http/modules/ngx_http_upstream_least_conn_module.o \
+objs/src/http/modules/ngx_http_upstream_random_module.o \
+objs/src/http/modules/ngx_http_upstream_keepalive_module.o \
+objs/src/http/modules/ngx_http_upstream_zone_module.o \
+objs/ngx_modules.o \
+-lgcov --coverage -lcrypt -lpcre2-8 -lssl -lcrypto -lz \
+-Wl,-E
+make[1]: Leaving directory '/__w/nginx'
+12:23:39 qemu22-edge master /__w/nginx 
+
+# cat  /opt/nginx.conf/minimal-return-ssl-tuned.conf
+daemon off;
+master_process off;
+worker_processes 1;
+
+error_log stderr warn;
+user    nginx;
+
+events {
+}
+
+
+http {
+    #proxy_ssl_certificate_cache max=1000 inactive=20s valid=1m;
+    log_format ssl '$ssl_protocol';
+
+    ssl_protocols TLSv1.3;
+
+    server
+    {
+        ssl_protocols TLSv1.1;
+        listen 443 ssl reuseport;
+        server_name localhost;
+        ssl_stapling off;
+        ssl_certificate     /dev/shm/cdn-agent/certs_puppet/gcdn.co/gcdn.co.crt;
+        ssl_certificate_key /dev/shm/cdn-agent/certs_puppet/gcdn.co/gcdn.co.key;
+
+        ssl_protocols TLSv1.3;
+        ssl_ecdh_curve X25519;
+        ssl_conf_command Ciphersuites TLS_AES_128_GCM_SHA256;
+        ssl_session_cache off;
+        ssl_session_tickets off;
+
+        access_log /dev/stderr ssl;
+
+        keepalive_timeout 0;
+        lingering_close off;
+
+        location / {
+            return 200;
+        }
+    }
+
+    server
+    {
+        listen 443 ssl;
+        server_name pwnrzclb-fe.gcdn.co;
+        ssl_stapling off;
+        ssl_certificate     /dev/shm/cdn-agent/certs_puppet/gcdn.co/gcdn.co.crt;
+        ssl_certificate_key /dev/shm/cdn-agent/certs_puppet/gcdn.co/gcdn.co.key;
+
+        ssl_protocols TLSv1.2;
+        ssl_ecdh_curve X25519;
+        ssl_conf_command Ciphersuites TLS_AES_128_GCM_SHA256;
+        ssl_session_cache off;
+        ssl_session_tickets off;
+
+        access_log /dev/stderr ssl;
+
+        keepalive_timeout 0;
+        lingering_close off;
+
+        location / {
+            return 200;
+        }
+    }
+
+}
+12:24:01 qemu22-edge master /__w/nginx 
+
+# /__w/nginx/objs/nginx -c   /opt/nginx.conf/minimal-return-ssl-tuned.conf
+^C12:24:13 qemu22-edge master /__w/nginx 
+
+# vim /opt/nginx.conf/minimal-return-ssl-tuned.conf
+12:24:36 qemu22-edge master /__w/nginx 
+
+# /__w/nginx/objs/nginx -c /opt/nginx.conf/minimal-return-ssl-tuned.conf
+^C12:24:46 qemu22-edge master /__w/nginx 
+
+# /__w/nginx/objs/nginx -c /opt/nginx.conf/minimal-return-ssl-tuned.conf &
+[1] 233047
+12:24:47 qemu22-edge master /__w/nginx 
+
+# openssl s_time -connect  pwnrzclb-fe.gcdn.co:443 -new -time 10
+Collecting connection statistics for 10 seconds
+*************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************
+
+4657 connections in 8.43s; 552.43 connections/user sec, bytes read 0
+4657 connections in 11 real seconds, 0 bytes read per connection
+12:25:04 qemu22-edge master /__w/nginx 
+
+# pn
+UID          PID    PPID     LWP  C NLWP    SZ   RSS PSR STIME TTY          TIME CMD
+root      143221  143200  143221  0    1  3038  5504   1 Feb25 pts/16   00:00:00 /usr/local/bin/nvim /opt/nginx.conf/quic_bpf.conf
+root      143222  143221  143222  0    1  4354 11392   1 Feb25 ?        00:00:00 /usr/local/bin/nvim --embed /opt/nginx.conf/quic_bpf.conf
+root      162466   32716  162466  0    1  3037  5632   2 Feb26 pts/0    00:00:00 /usr/local/bin/nvim /opt/nginx.conf/quic_bpf.conf
+root      162469  162466  162469  0    1  4285 11648   1 Feb26 ?        00:00:00 /usr/local/bin/nvim --embed /opt/nginx.conf/quic_bpf.conf
+root      222051  221493  222051  0    1  3038  6272   7 10:57 pts/15   00:00:00 /usr/local/bin/nvim ./nginx-tests/functional_tests/conf/ja3.conf
+root      222052  222051  222052  0    1  4278 11520   6 10:57 ?        00:00:00 /usr/local/bin/nvim --embed ./nginx-tests/functional_tests/conf/ja3.conf
+root      229936  229431  229936  0    1  3038  8960   5 12:22 pts/30   00:00:00 /usr/local/bin/nvim /tmp/nginx_minimal.c
+root      229937  229936  229937  0    1  4231 14720   7 12:22 ?        00:00:00 /usr/local/bin/nvim --embed /tmp/nginx_minimal.c
+root      233047  223702  233047  5    1  3170 10076   1 12:24 pts/22   00:00:01 /__w/nginx/objs/nginx -c /opt/nginx.conf/minimal-return-ssl-tuned.conf
+12:25:12 qemu22-edge master /__w/nginx 
+
+# kill 233047
+[1]+  Done                    /__w/nginx/objs/nginx -c /opt/nginx.conf/minimal-return-ssl-tuned.conf
+12:25:18 qemu22-edge master /__w/nginx 
+
+# pn
+UID          PID    PPID     LWP  C NLWP    SZ   RSS PSR STIME TTY          TIME CMD
+root      143221  143200  143221  0    1  3038  5504   1 Feb25 pts/16   00:00:00 /usr/local/bin/nvim /opt/nginx.conf/quic_bpf.conf
+root      143222  143221  143222  0    1  4354 11392   1 Feb25 ?        00:00:00 /usr/local/bin/nvim --embed /opt/nginx.conf/quic_bpf.conf
+root      162466   32716  162466  0    1  3037  5632   2 Feb26 pts/0    00:00:00 /usr/local/bin/nvim /opt/nginx.conf/quic_bpf.conf
+root      162469  162466  162469  0    1  4285 11648   1 Feb26 ?        00:00:00 /usr/local/bin/nvim --embed /opt/nginx.conf/quic_bpf.conf
+root      222051  221493  222051  0    1  3038  6272   7 10:57 pts/15   00:00:00 /usr/local/bin/nvim ./nginx-tests/functional_tests/conf/ja3.conf
+root      222052  222051  222052  0    1  4278 11520   6 10:57 ?        00:00:00 /usr/local/bin/nvim --embed ./nginx-tests/functional_tests/conf/ja3.conf
+root      229936  229431  229936  0    1  3038  8960   5 12:22 pts/30   00:00:00 /usr/local/bin/nvim /tmp/nginx_minimal.c
+root      229937  229936  229937  0    1  4231 14720   7 12:22 ?        00:00:00 /usr/local/bin/nvim --embed /tmp/nginx_minimal.c
+12:25:19 qemu22-edge master /__w/nginx 
+
+# find ./ -type f -name *gcda
+./objs/src/os/unix/ngx_udp_send.gcda
+./objs/src/os/unix/ngx_socket.gcda
+./objs/src/os/unix/ngx_linux_sendfile_chain.gcda
+./objs/src/os/unix/ngx_files.gcda
+./objs/src/os/unix/ngx_process_cycle.gcda
+./objs/src/os/unix/ngx_posix_init.gcda
+./objs/src/os/unix/ngx_udp_recv.gcda
+./objs/src/os/unix/ngx_recv.gcda
+./objs/src/os/unix/ngx_shmem.gcda
+./objs/src/os/unix/ngx_channel.gcda
+./objs/src/os/unix/ngx_alloc.gcda
+./objs/src/os/unix/ngx_process.gcda
+./objs/src/os/unix/ngx_writev_chain.gcda
+./objs/src/os/unix/ngx_time.gcda
+./objs/src/os/unix/ngx_linux_init.gcda
+./objs/src/os/unix/ngx_user.gcda
+./objs/src/os/unix/ngx_udp_sendmsg_chain.gcda
+./objs/src/os/unix/ngx_errno.gcda
+./objs/src/os/unix/ngx_setaffinity.gcda
+./objs/src/os/unix/ngx_readv_chain.gcda
+./objs/src/os/unix/ngx_daemon.gcda
+./objs/src/os/unix/ngx_setproctitle.gcda
+./objs/src/os/unix/ngx_dlopen.gcda
+./objs/src/os/unix/ngx_send.gcda
+./objs/src/http/ngx_http_huff_encode.gcda
+./objs/src/http/ngx_http_huff_decode.gcda
+./objs/src/http/ngx_http_variables.gcda
+./objs/src/http/ngx_http.gcda
+./objs/src/http/ngx_http_copy_filter_module.gcda
+./objs/src/http/ngx_http_core_module.gcda
+./objs/src/http/v2/ngx_http_v2_module.gcda
+./objs/src/http/v2/ngx_http_v2.gcda
+./objs/src/http/v2/ngx_http_v2_filter_module.gcda
+./objs/src/http/v2/ngx_http_v2_encode.gcda
+./objs/src/http/v2/ngx_http_v2_table.gcda
+./objs/src/http/ngx_http_upstream.gcda
+./objs/src/http/ngx_http_header_filter_module.gcda
+./objs/src/http/ngx_http_upstream_round_robin.gcda
+./objs/src/http/ngx_http_write_filter_module.gcda
+./objs/src/http/ngx_http_special_response.gcda
+./objs/src/http/ngx_http_postpone_filter_module.gcda
+./objs/src/http/ngx_http_request.gcda
+./objs/src/http/modules/ngx_http_headers_filter_module.gcda
+./objs/src/http/modules/ngx_http_upstream_random_module.gcda
+./objs/src/http/modules/ngx_http_empty_gif_module.gcda
+./objs/src/http/modules/ngx_http_log_module.gcda
+./objs/src/http/modules/ngx_http_userid_filter_module.gcda
+./objs/src/http/modules/ngx_http_index_module.gcda
+./objs/src/http/modules/ngx_http_referer_module.gcda
+./objs/src/http/modules/ngx_http_upstream_least_conn_module.gcda
+./objs/src/http/modules/ngx_http_gzip_filter_module.gcda
+./objs/src/http/modules/ngx_http_upstream_ip_hash_module.gcda
+./objs/src/http/modules/ngx_http_range_filter_module.gcda
+./objs/src/http/modules/ngx_http_geo_module.gcda
+./objs/src/http/modules/ngx_http_upstream_hash_module.gcda
+./objs/src/http/modules/ngx_http_autoindex_module.gcda
+./objs/src/http/modules/ngx_http_mirror_module.gcda
+./objs/src/http/modules/ngx_http_static_module.gcda
+./objs/src/http/modules/ngx_http_rewrite_module.gcda
+./objs/src/http/modules/ngx_http_ssi_filter_module.gcda
+./objs/src/http/modules/ngx_http_proxy_module.gcda
+./objs/src/http/modules/ngx_http_charset_filter_module.gcda
+./objs/src/http/modules/ngx_http_ssl_module.gcda
+./objs/src/http/modules/ngx_http_access_module.gcda
+./objs/src/http/modules/ngx_http_browser_module.gcda
+./objs/src/http/modules/ngx_http_auth_basic_module.gcda
+./objs/src/http/modules/ngx_http_not_modified_filter_module.gcda
+./objs/src/http/modules/ngx_http_map_module.gcda
+./objs/src/http/modules/ngx_http_proxy_v2_module.gcda
+./objs/src/http/modules/ngx_http_limit_req_module.gcda
+./objs/src/http/modules/ngx_http_try_files_module.gcda
+./objs/src/http/modules/ngx_http_chunked_filter_module.gcda
+./objs/src/http/modules/ngx_http_limit_conn_module.gcda
+./objs/src/http/modules/ngx_http_split_clients_module.gcda
+./objs/src/http/modules/ngx_http_slice_filter_module.gcda
+./objs/src/http/modules/ngx_http_upstream_zone_module.gcda
+./objs/src/http/modules/ngx_http_upstream_keepalive_module.gcda
+./objs/src/http/ngx_http_script.gcda
+./objs/src/http/ngx_http_file_cache.gcda
+./objs/src/http/ngx_http_request_body.gcda
+./objs/src/http/ngx_http_parse.gcda
+./objs/src/core/ngx_resolver.gcda
+./objs/src/core/ngx_radix_tree.gcda
+./objs/src/core/ngx_array.gcda
+./objs/src/core/ngx_syslog.gcda
+./objs/src/core/ngx_slab.gcda
+./objs/src/core/ngx_buf.gcda
+./objs/src/core/ngx_rbtree.gcda
+./objs/src/core/ngx_output_chain.gcda
+./objs/src/core/ngx_inet.gcda
+./objs/src/core/ngx_cpuinfo.gcda
+./objs/src/core/ngx_md5.gcda
+./objs/src/core/ngx_list.gcda
+./objs/src/core/ngx_open_file_cache.gcda
+./objs/src/core/ngx_palloc.gcda
+./objs/src/core/ngx_parse_time.gcda
+./objs/src/core/ngx_shmtx.gcda
+./objs/src/core/ngx_proxy_protocol.gcda
+./objs/src/core/ngx_crc32.gcda
+./objs/src/core/ngx_times.gcda
+./objs/src/core/ngx_rwlock.gcda
+./objs/src/core/ngx_crypt.gcda
+./objs/src/core/ngx_sha1.gcda
+./objs/src/core/ngx_queue.gcda
+./objs/src/core/ngx_log.gcda
+./objs/src/core/ngx_murmurhash.gcda
+./objs/src/core/ngx_connection.gcda
+./objs/src/core/ngx_regex.gcda
+./objs/src/core/ngx_parse.gcda
+./objs/src/core/ngx_spinlock.gcda
+./objs/src/core/nginx.gcda
+./objs/src/core/ngx_string.gcda
+./objs/src/core/ngx_hash.gcda
+./objs/src/core/ngx_cycle.gcda
+./objs/src/core/ngx_module.gcda
+./objs/src/core/ngx_bpf.gcda
+./objs/src/core/ngx_conf_file.gcda
+./objs/src/core/ngx_file.gcda
+./objs/src/event/ngx_event_connect.gcda
+./objs/src/event/ngx_event_udp.gcda
+./objs/src/event/ngx_event_openssl_cache.gcda
+./objs/src/event/ngx_event_posted.gcda
+./objs/src/event/ngx_event.gcda
+./objs/src/event/ngx_event_pipe.gcda
+./objs/src/event/ngx_event_accept.gcda
+./objs/src/event/modules/ngx_epoll_module.gcda
+./objs/src/event/ngx_event_timer.gcda
+./objs/src/event/ngx_event_openssl.gcda
+./objs/src/event/ngx_event_openssl_stapling.gcda
+12:25:34 qemu22-edge master /__w/nginx 
+
+# find ./ -type f -name *gcdno
+12:25:38 qemu22-edge master /__w/nginx 
+
+# find ./ -type f -name *gcdo
+12:25:40 qemu22-edge master /__w/nginx 
+
+# find ./ -type f -name *gc*
+./objs/ngx_modules.gcno
+./objs/src/os/unix/ngx_user.gcno
+./objs/src/os/unix/ngx_recv.gcno
+./objs/src/os/unix/ngx_udp_send.gcda
+./objs/src/os/unix/ngx_send.gcno
+./objs/src/os/unix/ngx_dlopen.gcno
+./objs/src/os/unix/ngx_socket.gcda
+./objs/src/os/unix/ngx_setproctitle.gcno
+./objs/src/os/unix/ngx_udp_sendmsg_chain.gcno
+./objs/src/os/unix/ngx_alloc.gcno
+./objs/src/os/unix/ngx_posix_init.gcno
+./objs/src/os/unix/ngx_shmem.gcno
+./objs/src/os/unix/ngx_writev_chain.gcno
+./objs/src/os/unix/ngx_daemon.gcno
+./objs/src/os/unix/ngx_linux_sendfile_chain.gcno
+./objs/src/os/unix/ngx_linux_sendfile_chain.gcda
+./objs/src/os/unix/ngx_files.gcda
+./objs/src/os/unix/ngx_errno.gcno
+./objs/src/os/unix/ngx_process_cycle.gcda
+./objs/src/os/unix/ngx_posix_init.gcda
+./objs/src/os/unix/ngx_channel.gcno
+./objs/src/os/unix/ngx_udp_recv.gcda
+./objs/src/os/unix/ngx_recv.gcda
+./objs/src/os/unix/ngx_udp_recv.gcno
+./objs/src/os/unix/ngx_shmem.gcda
+./objs/src/os/unix/ngx_channel.gcda
+./objs/src/os/unix/ngx_process_cycle.gcno
+./objs/src/os/unix/ngx_alloc.gcda
+./objs/src/os/unix/ngx_udp_send.gcno
+./objs/src/os/unix/ngx_process.gcda
+./objs/src/os/unix/ngx_writev_chain.gcda
+./objs/src/os/unix/ngx_time.gcda
+./objs/src/os/unix/ngx_linux_init.gcda
+./objs/src/os/unix/ngx_time.gcno
+./objs/src/os/unix/ngx_linux_init.gcno
+./objs/src/os/unix/ngx_user.gcda
+./objs/src/os/unix/ngx_socket.gcno
+./objs/src/os/unix/ngx_udp_sendmsg_chain.gcda
+./objs/src/os/unix/ngx_errno.gcda
+./objs/src/os/unix/ngx_files.gcno
+./objs/src/os/unix/ngx_setaffinity.gcda
+./objs/src/os/unix/ngx_process.gcno
+./objs/src/os/unix/ngx_readv_chain.gcda
+./objs/src/os/unix/ngx_readv_chain.gcno
+./objs/src/os/unix/ngx_setaffinity.gcno
+./objs/src/os/unix/ngx_daemon.gcda
+./objs/src/os/unix/ngx_setproctitle.gcda
+./objs/src/os/unix/ngx_dlopen.gcda
+./objs/src/os/unix/ngx_send.gcda
+./objs/src/http/ngx_http_variables.gcno
+./objs/src/http/ngx_http_huff_encode.gcda
+./objs/src/http/ngx_http_copy_filter_module.gcno
+./objs/src/http/ngx_http_huff_decode.gcda
+./objs/src/http/ngx_http_upstream.gcno
+./objs/src/http/ngx_http_variables.gcda
+./objs/src/http/ngx_http_huff_decode.gcno
+./objs/src/http/ngx_http_file_cache.gcno
+./objs/src/http/ngx_http_request.gcno
+./objs/src/http/ngx_http_write_filter_module.gcno
+./objs/src/http/ngx_http.gcda
+./objs/src/http/ngx_http_copy_filter_module.gcda
+./objs/src/http/ngx_http_postpone_filter_module.gcno
+./objs/src/http/ngx_http_core_module.gcda
+./objs/src/http/ngx_http_special_response.gcno
+./objs/src/http/ngx_http_header_filter_module.gcno
+./objs/src/http/ngx_http_script.gcno
+./objs/src/http/v2/ngx_http_v2_module.gcda
+./objs/src/http/v2/ngx_http_v2_encode.gcno
+./objs/src/http/v2/ngx_http_v2_table.gcno
+./objs/src/http/v2/ngx_http_v2.gcno
+./objs/src/http/v2/ngx_http_v2.gcda
+./objs/src/http/v2/ngx_http_v2_filter_module.gcno
+./objs/src/http/v2/ngx_http_v2_filter_module.gcda
+./objs/src/http/v2/ngx_http_v2_module.gcno
+./objs/src/http/v2/ngx_http_v2_encode.gcda
+./objs/src/http/v2/ngx_http_v2_table.gcda
+./objs/src/http/ngx_http_upstream.gcda
+./objs/src/http/ngx_http_header_filter_module.gcda
+./objs/src/http/ngx_http_upstream_round_robin.gcda
+./objs/src/http/ngx_http_write_filter_module.gcda
+./objs/src/http/ngx_http_request_body.gcno
+./objs/src/http/ngx_http_upstream_round_robin.gcno
+./objs/src/http/ngx_http_special_response.gcda
+./objs/src/http/ngx_http_postpone_filter_module.gcda
+./objs/src/http/ngx_http_parse.gcno
+./objs/src/http/ngx_http_request.gcda
+./objs/src/http/ngx_http.gcno
+./objs/src/http/ngx_http_core_module.gcno
+./objs/src/http/modules/ngx_http_headers_filter_module.gcda
+./objs/src/http/modules/ngx_http_upstream_random_module.gcda
+./objs/src/http/modules/ngx_http_empty_gif_module.gcda
+./objs/src/http/modules/ngx_http_log_module.gcda
+./objs/src/http/modules/ngx_http_userid_filter_module.gcda
+./objs/src/http/modules/ngx_http_index_module.gcda
+./objs/src/http/modules/ngx_http_upstream_hash_module.gcno
+./objs/src/http/modules/ngx_http_geo_module.gcno
+./objs/src/http/modules/ngx_http_referer_module.gcda
+./objs/src/http/modules/ngx_http_autoindex_module.gcno
+./objs/src/http/modules/ngx_http_upstream_least_conn_module.gcda
+./objs/src/http/modules/ngx_http_gzip_filter_module.gcda
+./objs/src/http/modules/ngx_http_gzip_filter_module.gcno
+./objs/src/http/modules/ngx_http_upstream_ip_hash_module.gcda
+./objs/src/http/modules/ngx_http_not_modified_filter_module.gcno
+./objs/src/http/modules/ngx_http_upstream_least_conn_module.gcno
+./objs/src/http/modules/ngx_http_upstream_keepalive_module.gcno
+./objs/src/http/modules/ngx_http_auth_basic_module.gcno
+./objs/src/http/modules/ngx_http_range_filter_module.gcda
+./objs/src/http/modules/ngx_http_rewrite_module.gcno
+./objs/src/http/modules/ngx_http_geo_module.gcda
+./objs/src/http/modules/ngx_http_try_files_module.gcno
+./objs/src/http/modules/ngx_http_ssi_filter_module.gcno
+./objs/src/http/modules/ngx_http_upstream_ip_hash_module.gcno
+./objs/src/http/modules/ngx_http_access_module.gcno
+./objs/src/http/modules/ngx_http_upstream_hash_module.gcda
+./objs/src/http/modules/ngx_http_range_filter_module.gcno
+./objs/src/http/modules/ngx_http_autoindex_module.gcda
+./objs/src/http/modules/ngx_http_slice_filter_module.gcno
+./objs/src/http/modules/ngx_http_mirror_module.gcda
+./objs/src/http/modules/ngx_http_static_module.gcda
+./objs/src/http/modules/ngx_http_rewrite_module.gcda
+./objs/src/http/modules/ngx_http_ssi_filter_module.gcda
+./objs/src/http/modules/ngx_http_limit_req_module.gcno
+./objs/src/http/modules/ngx_http_proxy_module.gcda
+./objs/src/http/modules/ngx_http_charset_filter_module.gcda
+./objs/src/http/modules/ngx_http_ssl_module.gcda
+./objs/src/http/modules/ngx_http_split_clients_module.gcno
+./objs/src/http/modules/ngx_http_ssl_module.gcno
+./objs/src/http/modules/ngx_http_upstream_zone_module.gcno
+./objs/src/http/modules/ngx_http_access_module.gcda
+./objs/src/http/modules/ngx_http_static_module.gcno
+./objs/src/http/modules/ngx_http_referer_module.gcno
+./objs/src/http/modules/ngx_http_browser_module.gcda
+./objs/src/http/modules/ngx_http_log_module.gcno
+./objs/src/http/modules/ngx_http_empty_gif_module.gcno
+./objs/src/http/modules/ngx_http_auth_basic_module.gcda
+./objs/src/http/modules/ngx_http_proxy_module.gcno
+./objs/src/http/modules/ngx_http_headers_filter_module.gcno
+./objs/src/http/modules/ngx_http_index_module.gcno
+./objs/src/http/modules/ngx_http_limit_conn_module.gcno
+./objs/src/http/modules/ngx_http_not_modified_filter_module.gcda
+./objs/src/http/modules/ngx_http_map_module.gcda
+./objs/src/http/modules/ngx_http_proxy_v2_module.gcda
+./objs/src/http/modules/ngx_http_limit_req_module.gcda
+./objs/src/http/modules/ngx_http_try_files_module.gcda
+./objs/src/http/modules/ngx_http_chunked_filter_module.gcda
+./objs/src/http/modules/ngx_http_limit_conn_module.gcda
+./objs/src/http/modules/ngx_http_chunked_filter_module.gcno
+./objs/src/http/modules/ngx_http_charset_filter_module.gcno
+./objs/src/http/modules/ngx_http_userid_filter_module.gcno
+./objs/src/http/modules/ngx_http_split_clients_module.gcda
+./objs/src/http/modules/ngx_http_proxy_v2_module.gcno
+./objs/src/http/modules/ngx_http_slice_filter_module.gcda
+./objs/src/http/modules/ngx_http_upstream_zone_module.gcda
+./objs/src/http/modules/ngx_http_upstream_random_module.gcno
+./objs/src/http/modules/ngx_http_browser_module.gcno
+./objs/src/http/modules/ngx_http_mirror_module.gcno
+./objs/src/http/modules/ngx_http_map_module.gcno
+./objs/src/http/modules/ngx_http_upstream_keepalive_module.gcda
+./objs/src/http/ngx_http_script.gcda
+./objs/src/http/ngx_http_huff_encode.gcno
+./objs/src/http/ngx_http_file_cache.gcda
+./objs/src/http/ngx_http_request_body.gcda
+./objs/src/http/ngx_http_parse.gcda
+./objs/src/core/ngx_resolver.gcda
+./objs/src/core/ngx_conf_file.gcno
+./objs/src/core/ngx_crc32.gcno
+./objs/src/core/ngx_syslog.gcno
+./objs/src/core/ngx_radix_tree.gcda
+./objs/src/core/ngx_array.gcda
+./objs/src/core/ngx_open_file_cache.gcno
+./objs/src/core/ngx_syslog.gcda
+./objs/src/core/ngx_slab.gcda
+./objs/src/core/ngx_buf.gcda
+./objs/src/core/ngx_rbtree.gcda
+./objs/src/core/ngx_output_chain.gcda
+./objs/src/core/ngx_inet.gcda
+./objs/src/core/ngx_cpuinfo.gcda
+./objs/src/core/ngx_md5.gcda
+./objs/src/core/ngx_murmurhash.gcno
+./objs/src/core/ngx_string.gcno
+./objs/src/core/ngx_parse.gcno
+./objs/src/core/ngx_list.gcda
+./objs/src/core/ngx_log.gcno
+./objs/src/core/ngx_rwlock.gcno
+./objs/src/core/ngx_open_file_cache.gcda
+./objs/src/core/ngx_module.gcno
+./objs/src/core/ngx_palloc.gcda
+./objs/src/core/ngx_resolver.gcno
+./objs/src/core/ngx_bpf.gcno
+./objs/src/core/ngx_parse_time.gcda
+./objs/src/core/ngx_shmtx.gcda
+./objs/src/core/ngx_proxy_protocol.gcda
+./objs/src/core/ngx_crc32.gcda
+./objs/src/core/ngx_inet.gcno
+./objs/src/core/ngx_times.gcda
+./objs/src/core/ngx_cpuinfo.gcno
+./objs/src/core/ngx_regex.gcno
+./objs/src/core/ngx_rwlock.gcda
+./objs/src/core/ngx_list.gcno
+./objs/src/core/ngx_sha1.gcno
+./objs/src/core/ngx_crypt.gcda
+./objs/src/core/ngx_palloc.gcno
+./objs/src/core/ngx_cycle.gcno
+./objs/src/core/ngx_sha1.gcda
+./objs/src/core/ngx_connection.gcno
+./objs/src/core/ngx_queue.gcda
+./objs/src/core/ngx_array.gcno
+./objs/src/core/ngx_log.gcda
+./objs/src/core/ngx_buf.gcno
+./objs/src/core/ngx_murmurhash.gcda
+./objs/src/core/ngx_connection.gcda
+./objs/src/core/ngx_regex.gcda
+./objs/src/core/nginx.gcno
+./objs/src/core/ngx_file.gcno
+./objs/src/core/ngx_parse.gcda
+./objs/src/core/ngx_spinlock.gcda
+./objs/src/core/ngx_parse_time.gcno
+./objs/src/core/ngx_crypt.gcno
+./objs/src/core/ngx_slab.gcno
+./objs/src/core/ngx_times.gcno
+./objs/src/core/nginx.gcda
+./objs/src/core/ngx_string.gcda
+./objs/src/core/ngx_rbtree.gcno
+./objs/src/core/ngx_hash.gcda
+./objs/src/core/ngx_cycle.gcda
+./objs/src/core/ngx_queue.gcno
+./objs/src/core/ngx_module.gcda
+./objs/src/core/ngx_output_chain.gcno
+./objs/src/core/ngx_proxy_protocol.gcno
+./objs/src/core/ngx_bpf.gcda
+./objs/src/core/ngx_hash.gcno
+./objs/src/core/ngx_conf_file.gcda
+./objs/src/core/ngx_md5.gcno
+./objs/src/core/ngx_radix_tree.gcno
+./objs/src/core/ngx_file.gcda
+./objs/src/core/ngx_shmtx.gcno
+./objs/src/core/ngx_spinlock.gcno
+./objs/src/event/ngx_event_pipe.gcno
+./objs/src/event/ngx_event_openssl.gcno
+./objs/src/event/ngx_event_connect.gcda
+./objs/src/event/ngx_event_udp.gcda
+./objs/src/event/ngx_event_timer.gcno
+./objs/src/event/ngx_event_openssl_cache.gcda
+./objs/src/event/ngx_event_posted.gcda
+./objs/src/event/ngx_event.gcno
+./objs/src/event/ngx_event_openssl_cache.gcno
+./objs/src/event/ngx_event_accept.gcno
+./objs/src/event/ngx_event.gcda
+./objs/src/event/ngx_event_pipe.gcda
+./objs/src/event/ngx_event_posted.gcno
+./objs/src/event/ngx_event_accept.gcda
+./objs/src/event/ngx_event_openssl_stapling.gcno
+./objs/src/event/modules/ngx_epoll_module.gcno
+./objs/src/event/modules/ngx_epoll_module.gcda
+./objs/src/event/ngx_event_timer.gcda
+./objs/src/event/ngx_event_connect.gcno
+./objs/src/event/ngx_event_openssl.gcda
+./objs/src/event/ngx_event_openssl_stapling.gcda
+./objs/src/event/ngx_event_udp.gcno
+./src/os/unix/ngx_gcc_atomic_amd64.h
+./src/os/unix/ngx_gcc_atomic_x86.h
+./src/os/unix/ngx_gcc_atomic_sparc64.h
+./src/os/unix/ngx_gcc_atomic_ppc.h
+./auto/cc/gcc
+12:25:42 qemu22-edge master /__w/nginx 
+
+# find ./ -type f -name *gc
+12:25:44 qemu22-edge master /__w/nginx 
+
+# find ./ -type f -name *gcno
+./objs/ngx_modules.gcno
+./objs/src/os/unix/ngx_user.gcno
+./objs/src/os/unix/ngx_recv.gcno
+./objs/src/os/unix/ngx_send.gcno
+./objs/src/os/unix/ngx_dlopen.gcno
+./objs/src/os/unix/ngx_setproctitle.gcno
+./objs/src/os/unix/ngx_udp_sendmsg_chain.gcno
+./objs/src/os/unix/ngx_alloc.gcno
+./objs/src/os/unix/ngx_posix_init.gcno
+./objs/src/os/unix/ngx_shmem.gcno
+./objs/src/os/unix/ngx_writev_chain.gcno
+./objs/src/os/unix/ngx_daemon.gcno
+./objs/src/os/unix/ngx_linux_sendfile_chain.gcno
+./objs/src/os/unix/ngx_errno.gcno
+./objs/src/os/unix/ngx_channel.gcno
+./objs/src/os/unix/ngx_udp_recv.gcno
+./objs/src/os/unix/ngx_process_cycle.gcno
+./objs/src/os/unix/ngx_udp_send.gcno
+./objs/src/os/unix/ngx_time.gcno
+./objs/src/os/unix/ngx_linux_init.gcno
+./objs/src/os/unix/ngx_socket.gcno
+./objs/src/os/unix/ngx_files.gcno
+./objs/src/os/unix/ngx_process.gcno
+./objs/src/os/unix/ngx_readv_chain.gcno
+./objs/src/os/unix/ngx_setaffinity.gcno
+./objs/src/http/ngx_http_variables.gcno
+./objs/src/http/ngx_http_copy_filter_module.gcno
+./objs/src/http/ngx_http_upstream.gcno
+./objs/src/http/ngx_http_huff_decode.gcno
+./objs/src/http/ngx_http_file_cache.gcno
+./objs/src/http/ngx_http_request.gcno
+./objs/src/http/ngx_http_write_filter_module.gcno
+./objs/src/http/ngx_http_postpone_filter_module.gcno
+./objs/src/http/ngx_http_special_response.gcno
+./objs/src/http/ngx_http_header_filter_module.gcno
+./objs/src/http/ngx_http_script.gcno
+./objs/src/http/v2/ngx_http_v2_encode.gcno
+./objs/src/http/v2/ngx_http_v2_table.gcno
+./objs/src/http/v2/ngx_http_v2.gcno
+./objs/src/http/v2/ngx_http_v2_filter_module.gcno
+./objs/src/http/v2/ngx_http_v2_module.gcno
+./objs/src/http/ngx_http_request_body.gcno
+./objs/src/http/ngx_http_upstream_round_robin.gcno
+./objs/src/http/ngx_http_parse.gcno
+./objs/src/http/ngx_http.gcno
+./objs/src/http/ngx_http_core_module.gcno
+./objs/src/http/modules/ngx_http_upstream_hash_module.gcno
+./objs/src/http/modules/ngx_http_geo_module.gcno
+./objs/src/http/modules/ngx_http_autoindex_module.gcno
+./objs/src/http/modules/ngx_http_gzip_filter_module.gcno
+./objs/src/http/modules/ngx_http_not_modified_filter_module.gcno
+./objs/src/http/modules/ngx_http_upstream_least_conn_module.gcno
+./objs/src/http/modules/ngx_http_upstream_keepalive_module.gcno
+./objs/src/http/modules/ngx_http_auth_basic_module.gcno
+./objs/src/http/modules/ngx_http_rewrite_module.gcno
+./objs/src/http/modules/ngx_http_try_files_module.gcno
+./objs/src/http/modules/ngx_http_ssi_filter_module.gcno
+./objs/src/http/modules/ngx_http_upstream_ip_hash_module.gcno
+./objs/src/http/modules/ngx_http_access_module.gcno
+./objs/src/http/modules/ngx_http_range_filter_module.gcno
+./objs/src/http/modules/ngx_http_slice_filter_module.gcno
+./objs/src/http/modules/ngx_http_limit_req_module.gcno
+./objs/src/http/modules/ngx_http_split_clients_module.gcno
+./objs/src/http/modules/ngx_http_ssl_module.gcno
+./objs/src/http/modules/ngx_http_upstream_zone_module.gcno
+./objs/src/http/modules/ngx_http_static_module.gcno
+./objs/src/http/modules/ngx_http_referer_module.gcno
+./objs/src/http/modules/ngx_http_log_module.gcno
+./objs/src/http/modules/ngx_http_empty_gif_module.gcno
+./objs/src/http/modules/ngx_http_proxy_module.gcno
+./objs/src/http/modules/ngx_http_headers_filter_module.gcno
+./objs/src/http/modules/ngx_http_index_module.gcno
+./objs/src/http/modules/ngx_http_limit_conn_module.gcno
+./objs/src/http/modules/ngx_http_chunked_filter_module.gcno
+./objs/src/http/modules/ngx_http_charset_filter_module.gcno
+./objs/src/http/modules/ngx_http_userid_filter_module.gcno
+./objs/src/http/modules/ngx_http_proxy_v2_module.gcno
+./objs/src/http/modules/ngx_http_upstream_random_module.gcno
+./objs/src/http/modules/ngx_http_browser_module.gcno
+./objs/src/http/modules/ngx_http_mirror_module.gcno
+./objs/src/http/modules/ngx_http_map_module.gcno
+./objs/src/http/ngx_http_huff_encode.gcno
+./objs/src/core/ngx_conf_file.gcno
+./objs/src/core/ngx_crc32.gcno
+./objs/src/core/ngx_syslog.gcno
+./objs/src/core/ngx_open_file_cache.gcno
+./objs/src/core/ngx_murmurhash.gcno
+./objs/src/core/ngx_string.gcno
+./objs/src/core/ngx_parse.gcno
+./objs/src/core/ngx_log.gcno
+./objs/src/core/ngx_rwlock.gcno
+./objs/src/core/ngx_module.gcno
+./objs/src/core/ngx_resolver.gcno
+./objs/src/core/ngx_bpf.gcno
+./objs/src/core/ngx_inet.gcno
+./objs/src/core/ngx_cpuinfo.gcno
+./objs/src/core/ngx_regex.gcno
+./objs/src/core/ngx_list.gcno
+./objs/src/core/ngx_sha1.gcno
+./objs/src/core/ngx_palloc.gcno
+./objs/src/core/ngx_cycle.gcno
+./objs/src/core/ngx_connection.gcno
+./objs/src/core/ngx_array.gcno
+./objs/src/core/ngx_buf.gcno
+./objs/src/core/nginx.gcno
+./objs/src/core/ngx_file.gcno
+./objs/src/core/ngx_parse_time.gcno
+./objs/src/core/ngx_crypt.gcno
+./objs/src/core/ngx_slab.gcno
+./objs/src/core/ngx_times.gcno
+./objs/src/core/ngx_rbtree.gcno
+./objs/src/core/ngx_queue.gcno
+./objs/src/core/ngx_output_chain.gcno
+./objs/src/core/ngx_proxy_protocol.gcno
+./objs/src/core/ngx_hash.gcno
+./objs/src/core/ngx_md5.gcno
+./objs/src/core/ngx_radix_tree.gcno
+./objs/src/core/ngx_shmtx.gcno
+./objs/src/core/ngx_spinlock.gcno
+./objs/src/event/ngx_event_pipe.gcno
+./objs/src/event/ngx_event_openssl.gcno
+./objs/src/event/ngx_event_timer.gcno
+./objs/src/event/ngx_event.gcno
+./objs/src/event/ngx_event_openssl_cache.gcno
+./objs/src/event/ngx_event_accept.gcno
+./objs/src/event/ngx_event_posted.gcno
+./objs/src/event/ngx_event_openssl_stapling.gcno
+./objs/src/event/modules/ngx_epoll_module.gcno
+./objs/src/event/ngx_event_connect.gcno
+./objs/src/event/ngx_event_udp.gcno
+12:25:48 qemu22-edge master /__w/nginx 
+
+# 12:23:06 qemu22-edge master /__w/nginx 
+
+# git-cleanup master pristine
++ '[' -f .vscode/launch.json ']'
++ save_launch=true
++ cp .vscode/launch.json /tmp/launch.json
++ git checkout master
+Already on 'master'
+Your branch is up to date with 'origin/master'.
++ git fetch origin
++ git reset --hard origin/master
+HEAD is now at ec714d52b SCGI: fixed passing CONTENT_LENGTH in unbuffered mode.
++ git clean -ffxd
+Removing .vscode/
++ git submodule update --init --recursive --force
++ git submodule foreach --recursive git submodule sync
++ git submodule foreach --recursive git clean -ffxd
++ git status
+On branch master
+Your branch is up to date with 'origin/master'.
+
+nothing to commit, working tree clean
++ '[' true = true ']'
++ mkdir .vscode/
++ cp /tmp/launch.json .vscode/launch.json
+12:23:10 qemu22-edge master /__w/nginx 
+
+# /__w/build-nginx/build-nginx-
+build-nginx-for-multirange_slicing.sh  build-nginx-quic.sh                    build-nginx-ssl.sh                     
+12:23:10 qemu22-edge master /__w/nginx 
+
+# cat /__w/build-nginx/build-nginx-ssl.sh 
+echo -en "\033]0;"build"\007"
+
+./auto/configure \
+--prefix=/tmp/nginx \
+--sbin-path=/tmp/nginx/usr/sbin/nginx \
+--modules-path=/tmp/nginx/usr/lib/nginx/modules \
+--conf-path=/tmp/nginx/etc/nginx/nginx.conf \
+--error-log-path=/tmp/nginx/var/log/nginx/error.log \
+--http-log-path=/tmp/nginx/var/log/nginx/access.log \
+--pid-path=/tmp/nginx/var/run/nginx.pid \
+--lock-path=/tmp/nginx/var/run/nginx.lock \
+--http-client-body-temp-path=/tmp/nginx/var/cache/nginx/client_temp \
+--http-proxy-temp-path=/tmp/nginx/var/cache/nginx/proxy_temp \
+--without-http_fastcgi_module \
+ ^C25:48 qemu22-edge master /__w/nginx le.gcnonocnooule.gcnoonoo        00:00:00 /usr/local/bin/nvim --embed /tmp/nginx_minimal.conal_tests/conf/ja3.conf*******
+12:27:08 qemu22-edge master /__w/nginx 
+
+# ^C
+12:27:08 qemu22-edge master /__w/nginx 
+
+# ^C
+12:27:08 qemu22-edge master /__w/nginx 
+
+
+gcc -O0 -o nginx-ssl-minimal nginx-ssl-minimal.c -lssl -lcrypto
+openssl s_time -connect  pwnrzclb-fe.gcdn.co:443 -new -time 10
+./nginx-ssl-minimal 443 /dev/shm/cdn-agent/certs_puppet/gcdn.co/gcdn.co.crt /dev/shm/cdn-agent/certs_puppet/gcdn.co/gcdn.co.crt.key
