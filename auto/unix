@@ -696,6 +696,18 @@ ngx_feature_test="setproctitle(\"test\");"
 . auto/feature
 
 
+ngx_feature="preadv2()"
+ngx_feature_name="NGX_HAVE_PREADV2"
+ngx_feature_run=no
+ngx_feature_incs="#include <sys/uio.h>"
+ngx_feature_path=
+ngx_feature_libs=
+ngx_feature_test="char buf[1]; struct iovec iov = {buf, 1};
+                  ssize_t n; n = preadv2(0, &iov, 1, 0, 0);
+                  if (n == -1) return 1"
+. auto/feature
+
+
 ngx_feature="pread()"
 ngx_feature_name="NGX_HAVE_PREAD"
 ngx_feature_run=no

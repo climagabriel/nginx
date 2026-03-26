@@ -120,7 +120,9 @@ ngx_fd_t ngx_open_tempfile(u_char *name, ngx_uint_t persistent,
 
 
 ssize_t ngx_read_file(ngx_file_t *file, u_char *buf, size_t size, off_t offset);
-#if (NGX_HAVE_PREAD)
+#if (NGX_HAVE_PREADV2)
+#define ngx_read_file_n          "preadv2()"
+#elif (NGX_HAVE_PREAD)
 #define ngx_read_file_n          "pread()"
 #else
 #define ngx_read_file_n          "read()"

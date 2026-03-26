@@ -10,7 +10,7 @@
 
 
 #ifndef _GNU_SOURCE
-#define _GNU_SOURCE             /* pread(), pwrite(), gethostname() */
+#define _GNU_SOURCE             /* preadv2(), pread(), pwrite(), gethostname() */
 #endif
 
 #define _FILE_OFFSET_BITS  64
