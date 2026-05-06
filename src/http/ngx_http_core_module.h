@@ -355,6 +355,7 @@ struct ngx_http_core_loc_conf_s {
     off_t         client_max_body_size;    /* client_max_body_size */
     off_t         directio;                /* directio */
     off_t         directio_alignment;      /* directio_alignment */
+    ngx_uint_t    directio_max_uses;       /* directio_max_uses */
 
     size_t        client_body_buffer_size; /* client_body_buffer_size */
     size_t        send_lowat;              /* send_lowat */

@@ -356,6 +356,10 @@ ngx_http_file_cache_open(ngx_http_request_t *r)
     of.directio = clcf->directio;
     of.read_ahead = clcf->read_ahead;
 
+    if (clcf->directio_max_uses && c->uses >= clcf->directio_max_uses) {
+        of.directio = NGX_OPEN_FILE_DIRECTIO_OFF;
+    }
+
     if (ngx_open_cached_file(clcf->open_file_cache, &c->file.name, &of, r->pool)
         != NGX_OK)
     {
@@ -918,7 +922,9 @@ ngx_http_file_cache_exists(ngx_http_file_cache_t *cache, ngx_http_cache_t *c)
         ngx_queue_remove(&fcn->queue);
 
         if (c->node == NULL) {
-            fcn->uses++;
+            if (fcn->uses < 1023) {
+                fcn->uses++;
+            }
             fcn->count++;
         }
 
@@ -1003,6 +1009,7 @@ done:
 
     c->uniq = fcn->uniq;
     c->error = fcn->error;
+    c->uses = fcn->uses;
     c->node = fcn;
 
 failed:
