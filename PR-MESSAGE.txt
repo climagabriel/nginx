@@ -1,0 +1,61 @@
+QUIC: tunable transport parameters and PMTUD probing cap
+
+Adds three directives. All defaults preserve current behavior; the
+knobs only take effect when set.
+
+quic_max_egress_udp_payload_size
+  Bounds the ngx_quic_discover_path_mtu() probe ceiling by
+  min(client max_udp_payload_size, quic_max_egress_udp_payload_size).
+  Default 65527 (NGX_QUIC_MAX_UDP_PAYLOAD_SIZE), range 1200-65527.
+
+quic_max_udp_payload_size
+  Sets the advertised max_udp_payload_size transport parameter
+  (RFC 9000 section 18.2), i.e. the largest UDP payload the server is
+  willing to receive. Default 65527, range 1200-65527.
+
+quic_initial_max_data
+  Caps the initial_max_data transport parameter, otherwise computed
+  as streams * stream_buffer_size. Default 0 (no cap); a non-zero
+  value below http3_stream_buffer_size is raised to it with a
+  warning.
+
+
+Tested on CDN edge and qlogged QUIC traffic
+Every single client that delivered transport parameters advertised
+the RFC 9000 maximum:
+
+    {"name":"transport:parameters_set","data":{"owner":"remote",
+     "max_udp_payload_size":65527, ...}}        126 of 126 clients
+
+So the client-advertised value never bounds PMTUD probing in
+practice, and the effective probe ceiling today is 65527. Since
+ngx_quic_discover_path_mtu() starts by doubling the base MTU, the
+first probe already exceeds a 1500-byte path; wherever ICMP Packet
+Too Big is filtered (common on mobile carriers and tunneled paths),
+oversized probes are silently lost and the search spends retries and
+timer rounds converging from above. An operator who knows the egress
+path (tunnel/encapsulation overhead, fixed uplink MTU) can pin the
+ceiling instead. With the cap set to 1280, a real-client connection
+completes discovery in a single probe, acknowledged one RTT later:
+
+    {"time":130,"name":"transport:packet_sent","data":{"frames":[
+     {"frame_type":"ping"}],"header":{"packet_type":"1RTT",
+     "packet_number":47},"raw":{"length":1280}}}
+    {"time":140,"name":"transport:packet_received","data":{"frames":[
+     {"frame_type":"ack","acked_ranges":[[0,47]]}], ...}}
+
+On the ingress side, a server behind tunnels or encapsulation cannot
+rely on ICMP PTB reaching its peers either; advertising a reduced
+max_udp_payload_size keeps clients below what the ingress path can
+deliver. We run production edges advertising 1400:
+
+    {"name":"transport:parameters_set","data":{"owner":"local",
+     "max_udp_payload_size":1400,"initial_max_data":16777216, ...}}
+
+Across the 127 captured connections no inbound datagram exceeded
+1252 bytes and no client interoperability issues were observed.
+
+quic_initial_max_data addresses a separate operational need: on a
+busy edge the computed connection flow-control credit
+(streams * stream_buffer_size) commits more memory per connection
+than an operator may want; this makes the ceiling explicit.
