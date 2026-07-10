@@ -235,12 +235,24 @@ ngx_quic_qlog_init(ngx_connection_t *c, ngx_quic_connection_t *qc)
 void
 ngx_quic_qlog_close(ngx_quic_connection_t *qc)
 {
-    if (qc->qlog && qc->qlog->fd != NGX_INVALID_FILE) {
+    if (qc->qlog == NULL) {
+        return;
+    }
+
+    if (qc->qlog->fd != NGX_INVALID_FILE) {
         (void) ngx_quic_qlog_flush(qc->qlog);
         ngx_close_file(qc->qlog->fd);
         qc->qlog->fd = NGX_INVALID_FILE;
-        qc->qlog->closed = 1;
     }
+
+    /* the buffer owner must not outlive the connection pool */
+
+    if (ngx_quic_qlog_out_owner == qc->qlog) {
+        ngx_quic_qlog_out_last = ngx_quic_qlog_out_buf;
+        ngx_quic_qlog_out_owner = NULL;
+    }
+
+    qc->qlog->closed = 1;
 }
 
 
@@ -761,6 +773,12 @@ ngx_quic_qlog_write(ngx_quic_qlog_t *qlog, u_char *buf, size_t size)
 
     if (ngx_quic_qlog_flush(qlog) != NGX_OK) {
         return NGX_ERROR;
+    }
+
+    /* the flush reached max_size and closed this qlog */
+
+    if (qlog->closed) {
+        return NGX_OK;
     }
 
     ngx_quic_qlog_out_owner = qlog;
