@@ -9,7 +9,9 @@ import logging
 two_o_sixes = 0
 two_o_os = 0
 
-ORIGIN='http://origin:8080/'
+#ORIGIN='http://origin:8080/'
+ORIGIN='http://local_origin1:3333/'
+#CACHE='http://pwnrzclb-fe.gcdn.co/'
 uri = 'f2p24b'
 
 origin_head_response = requests.head(f'{ORIGIN}{uri}')
@@ -19,15 +21,20 @@ max_distance = origin_file_size//10
 range_prefix = 'bytes='
 
 c = 0
+n = 0
 comp = True
 
 while (comp):
 
+    n += 1
+
+    CACHE=random.choice(['http://sliced:8081/', 'http://unsliced:8081/', 'http://minuses:8081/', 'http://min_unsliced:8081/'])
+    #CACHE='http://minuses:8081/'
+    #CACHE=random.choice(['http://sliced:8081/', 'http://minuses:8081/'])
     origin_response_content = ''
     cache_response_content = ''
-    CACHE=random.choice(['http://sliced:80/', 'http://unsliced:80/'])
     range_header = range_prefix
-    rangecount = random.randint(2,12)
+    rangecount = random.randint(2,7)
 
     for i in (range(rangecount)):
 
@@ -59,6 +66,7 @@ while (comp):
 
 
     rheader = { 'Range' : range_header }
+    print(n, CACHE, range_header, end='', flush=True)
 
     origin_response = requests.get(f"{ORIGIN}{uri}", headers=rheader)
     origin_response_headers = origin_response.headers
@@ -92,7 +100,7 @@ while (comp):
         quit()
 
 
-    print('(', origin_response.status_code, rangecount,cache_response_headers['cache'], '),', end='', flush=True)
+    print(' (', origin_response.status_code, rangecount,cache_response_headers['cache'], '),', end='\n', flush=True)
     #print('conn:',cache_response_headers['conn'], range_header)
 
     if not (comp):
@@ -103,6 +111,6 @@ while (comp):
             cachec.write(cache_response_content)
         quit()
 
-    #subprocess.run('find /mnt/disk*/cache/ -type f ! -name "*.*"  | shuf -n 10 | xargs rm -f ', shell=True, check=True)
     if (random.choice([True, False])):
-        subprocess.run('find /mnt/disk*/cache/ -type f ! -name "*.*" | xargs rm -f ', shell=True, check=True)
+        subprocess.run('find /mnt/disk1/cache/multirange-splitted/ -type f ! -name "*.*"  | shuf -n 8 | xargs --no-run-if-empty rm -f ', shell=True, check=True)
+    #subprocess.run('find /mnt/disk1/cache/multirange-splitted/ -type f ! -name "*.*" | xargs --no-run-if-empty rm -f ', shell=True, check=True)
