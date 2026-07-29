@@ -34,7 +34,7 @@ while (comp):
     origin_response_content = ''
     cache_response_content = ''
     range_header = range_prefix
-    rangecount = random.randint(2,7)
+    rangecount = random.randint(1,7)
 
     for i in (range(rangecount)):
 
