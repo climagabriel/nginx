@@ -4369,6 +4369,19 @@ ngx_http_upstream_process_upstream(ngx_http_request_t *r,
         p->upstream_error = 1;
         ngx_connection_error(c, NGX_ETIMEDOUT, "upstream timed out");
 
+        /*
+         * flush data already read from the upstream, except for
+         * an unrequested 101 response, whose body is not part
+         * of the response
+         */
+
+        if (u->headers_in.status_n != NGX_HTTP_SWITCHING_PROTOCOLS
+            && ngx_event_pipe(p, 1) == NGX_ABORT)
+        {
+            ngx_http_upstream_finalize_request(r, u, NGX_ERROR);
+            return;
+        }
+
     } else {
 
         if (rev->delayed) {
