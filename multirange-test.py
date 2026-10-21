@@ -1,0 +1,116 @@
+import requests
+import re
+import random
+import subprocess
+import logging
+
+#logging.basicConfig(level=logging.DEBUG)
+
+two_o_sixes = 0
+two_o_os = 0
+
+#ORIGIN='http://origin:8080/'
+ORIGIN='http://local_origin1:3333/'
+#CACHE='http://pwnrzclb-fe.gcdn.co/'
+uri = 'f2p24b'
+
+origin_head_response = requests.head(f'{ORIGIN}{uri}')
+origin_file_size = int(origin_head_response.headers.get('Content-Length'))
+max_distance = origin_file_size//10
+
+range_prefix = 'bytes='
+
+c = 0
+n = 0
+comp = True
+
+while (comp):
+
+    n += 1
+
+    CACHE=random.choice(['http://sliced:8081/', 'http://unsliced:8081/', 'http://minuses:8081/', 'http://min_unsliced:8081/'])
+    #CACHE='http://minuses:8081/'
+    #CACHE=random.choice(['http://sliced:8081/', 'http://minuses:8081/'])
+    origin_response_content = ''
+    cache_response_content = ''
+    range_header = range_prefix
+    rangecount = random.randint(1,7)
+
+    for i in (range(rangecount)):
+
+        a = random.randint(1, origin_file_size - max_distance)
+        b = a + random.randint(0, max_distance)
+
+        #open ranges
+        # x-      (x ... last)
+        # -x (last-x ... last)
+        items = ['a', 'b', 'c']
+        weights = [0.1, 0.1, 0.8]
+        choice = random.choices(items, weights=weights, k=1)[0]
+        if choice == 'a':
+            a = ""
+        elif choice == 'b':
+            b = ""
+        elif choice == 'c':
+            c = ""
+
+
+        if (random.choice([True, False])):
+            range_header += f'{a}-{b}'
+        else:
+            range_header += f'{b}-{a}'
+
+        if ((i+1) < rangecount):
+            range_header += ','
+
+
+
+    rheader = { 'Range' : range_header }
+    print(n, CACHE, range_header, end='', flush=True)
+
+    origin_response = requests.get(f"{ORIGIN}{uri}", headers=rheader)
+    origin_response_headers = origin_response.headers
+    if ('boundary=' in origin_response_headers['content-type']):
+        origin_boundary_pattern = origin_response_headers['content-type'].split("boundary=")[1]
+        origin_response_content = re.sub(origin_boundary_pattern.encode(), b'BOUNDARY', origin_response.content.replace(b'\r\n', b''))
+    else:
+        origin_response_content = origin_response.content.replace(b'\r\n', b'')
+
+
+
+    cache_response = requests.get(f"{CACHE}{uri}", headers=rheader)
+    cache_response_headers = cache_response.headers
+    if ('boundary=' in cache_response_headers['content-type']):
+        cache_boundary_pattern = cache_response_headers['content-type'].split("boundary=")[1]
+        cache_response_content = re.sub(cache_boundary_pattern.encode(), b'BOUNDARY', cache_response.content.replace(b'\r\n', b''))
+    else:
+        cache_response_content = cache_response.content.replace(b'\r\n', b'')
+
+
+    if(cache_response.status_code == 206 == origin_response.status_code):
+        two_o_sixes += 1
+        comp = cache_response_content == origin_response_content
+    elif (cache_response.status_code == 200 == origin_response.status_code):
+        two_o_os += 1
+        comp =  cache_response.content == origin_response.content
+    elif (cache_response.status_code == 416 == origin_response.status_code):
+        print('\n',cache_response.status_code, origin_response.status_code, range_header, '\n')
+    else:
+        print('\n',cache_response.status_code, origin_response.status_code, range_header, '\n')
+        quit()
+
+
+    print(' (', origin_response.status_code, rangecount,cache_response_headers['cache'], '),', end='\n', flush=True)
+    #print('conn:',cache_response_headers['conn'], range_header)
+
+    if not (comp):
+        print('\n',cache_response.status_code, origin_response.status_code, range_header, '\n')
+        with open('/tmp/origin.txt', 'wb') as originc:
+            originc.write(origin_response_content)
+        with open('/tmp/cache.txt', 'wb') as cachec:
+            cachec.write(cache_response_content)
+        quit()
+
+    if (random.choice([True, False])):
+        subprocess.run('find /mnt/disk1/cache/multirange-splitted/ -type f ! -name "*.*"  | shuf -n 8 | xargs --no-run-if-empty rm -f ', shell=True, check=True)
+    #subprocess.run('find /mnt/disk1/cache/multirange-splitted/ -type f ! -name "*.*" | xargs --no-run-if-empty rm -f ', shell=True, check=True)
