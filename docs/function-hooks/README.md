@@ -220,3 +220,7 @@ goal is the typed-argument hook ergonomics, strategy B (build-time trampolines,
 no runtime compiler on the edge) reaches a shippable design for roughly half
 the engineering and a security review it can actually clear, and is the
 recommended target if this is funded at all.
+
+> **Mechanism detail:** `MECHANISM.md` in this directory walks through the
+> runtime self-modification step by step, with a working ~90-line proof
+> (`selfpatch.c`) that patches its own `.text` to hook a function.
