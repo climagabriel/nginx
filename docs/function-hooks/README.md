@@ -146,3 +146,77 @@ Every behavioral claim here about inlining, static linkage and `-Wl,-E` is
 from the built 1.30.2-31 edge binary and this tree's `auto/cc/conf`; the
 patch-safety claims are design assertions, not yet demonstrated by a running
 config, and must be proven with a demo before any of this is asserted as fact.
+
+---
+
+## 6. Total dollar cost
+
+"Total cost" has three lines. Only one is large, and it is not the AI.
+
+**6a. AI / token spend is negligible.** The ~380M-token prototype estimate
+sounds large but prices tiny, because long edit-compile sessions are dominated
+by prompt-cache reads, which are an order of magnitude cheaper than fresh
+input. Measured from local transcripts of feature-shaped sessions on this
+exact codebase, one session costs:
+
+| Model tier | $/session (median) |
+|---|---|
+| Opus 4.8 ($5/$25 per MTok) | ~$110 |
+| Fable 5.1 ($10/$50) | ~$110 |
+| Opus 5.5 ($4/$20) | ~$59 |
+| Sonnet 5.5 ($2/$10) | ~$45 |
+
+At 4-7 sessions, the prototype's entire model spend is **~$450-$1,500**, even
+on the top tier. Call it **under $2,000** including the false starts the patch
+core will cause.
+
+**6b. Engineering time is the whole bill.** Strategy C is senior systems work:
+runtime codegen, prologue patching, W^X, pre-fork safety, and a long crash-
+debug tail. With AI assistance, a realistic prototype schedule for one senior
+engineer:
+
+| Phase | Calendar |
+|---|---|
+| Design + symbol/DWARF survey | 1-2 weeks |
+| Config + parser plumbing | ~1 week |
+| Prototype-table generator | 1-2 weeks |
+| Trampoline + patch core (the crash tail) | 3-6 weeks |
+| Tests, flakiness loop, coredump round-trips | 2-3 weeks |
+| Adversarial review + two fix iterations | 1-2 weeks |
+
+That is **~9-16 weeks**, roughly **2.5-4 months** of one senior engineer, plus
+review time from one or two others. Assuming a fully loaded senior-engineer
+cost of **~$12-15k/month** (salary, overhead, benefits; stated as an
+assumption, not Gcore's actual figure), the engineering line is
+**~$30k-60k**, and reviewers/SRE add perhaps **$10k-20k** of other people's
+time.
+
+**6c. Deploy and test infra is mostly sunk.** CI runs through the existing
+builder container, loadtest/QAA runs through existing boxes, and the edge
+fleet already exists. The incremental dollar cost of building, CI-ing and
+canary-deploying is compute already paid for: hundreds of dollars of machine
+time at most, not a capital line.
+
+### Headline
+
+| Line | Prototype cost |
+|---|---|
+| AI / token spend | ~$0.5k-2k (negligible) |
+| Engineering (one senior, 2.5-4 mo) | ~$30k-60k |
+| Review / SRE overhead | ~$10k-20k |
+| Deploy + test infra (incremental) | ~$0.1k-0.5k |
+| **Total, prototype** | **~$45k-80k** |
+
+The number is a salary number, not a compute number: **~$45k-80k for a
+strategy-C prototype**, dominated entirely by senior engineering months.
+
+**Production is a different and larger question.** Hardening to ship to the
+edge fleet (exit hooks, inlined-target story, multi-arch, snippet resource
+limits) is comparable again, roughly doubling the engineering line. More to the
+point, the feature compiles and runs **unsandboxed native C from nginx.conf on
+every production edge**, so the binding constraint is not budget but security
+review, which this design is unlikely to pass in strategy C's form. If the
+goal is the typed-argument hook ergonomics, strategy B (build-time trampolines,
+no runtime compiler on the edge) reaches a shippable design for roughly half
+the engineering and a security review it can actually clear, and is the
+recommended target if this is funded at all.
