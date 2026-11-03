@@ -2,14 +2,17 @@
 
 Differential fuzzer for `multipart/byteranges` (RFC 9110 §14.6) handling through
 the slice and proxy-cache modules of an nginx-gcdn fork. Each iteration sends the
-same multi-range request to a cache edge and to a vanilla origin, normalizes both
-bodies, and compares them. A body mismatch, or a status disagreement, stops the
-run.
+same multi-range request to a cache edge and to a vanilla origin and compares
+what they return: the status, and for a multipart response the list of parts
+(each Content-Range and its bytes). It also checks the edge's multipart framing on
+its own, since the origin may frame its response differently. A mismatch, a
+framing error, or a status disagreement stops the run: the edge must return the
+origin's status, and any split, including 200/206, is a failure.
 
 | File | Role |
 | --- | --- |
 | `multirange-test.py` | The fuzzer. Loops until the first mismatch. |
-| `multirange_slicing.conf` | Cache edge. Four virtual hosts (nginx `server` blocks) on `127.0.0.3:8081`. Runs under the fork binary. |
+| `multirange_slicing.conf` | Cache edge. Six virtual hosts (nginx `server` blocks) on `127.0.0.3:8081`. Runs under the fork binary. |
 | `nginx-origin.conf` | Origin. Vanilla nginx, static files. Listens on `127.0.0.2:3333`, `127.0.0.3:3333`, `127.0.0.4:3333`. |
 
 ## Topology
@@ -18,14 +21,16 @@ run.
 - cache edge → origin, upstream `local_origin1` and `local_origin2`, port 3333
 - fuzzer → origin directly, `local_origin1:3333`, for the reference body
 
-The four cache virtual hosts differ as:
+The six cache virtual hosts differ as:
 
-| Host | Slicing | Other |
-| --- | --- | --- |
-| `sliced` | `slice 2m` | `proxy_cache_max_range_offset 1000` |
-| `minuses` | `slice 3m` | `proxy_cache_min_uses 1024` |
-| `unsliced` | off | caching |
-| `min_unsliced` | off | `proxy_cache_min_uses 1024` |
+| Host | Slicing | Other | Who builds the multipart response |
+| --- | --- | --- | --- |
+| `sliced` | `slice 2m` | `proxy_cache_max_range_offset 1000` | The edge, from one 206 per slice. |
+| `minuses` | `slice 3m` | `proxy_cache_min_uses 1024` | The edge, from one 206 per slice. |
+| `unsliced` | off | `proxy_cache`, no other cache directive | The edge, from the cache file: on a miss, a clone subrequest reads it once the miss has filled it. |
+| `min_unsliced` | off | `proxy_cache_min_uses 1024` | The origin: the edge forwards the client's Range and relays the origin's 206. |
+| `bypass_unsliced` | off | `proxy_cache_bypass 1`, `proxy_no_cache 1` | The edge, from the origin's 200 as it streams: a bypass sends the origin no Range. |
+| `bypass_spill` | off | as `bypass_unsliced`, with `proxy_buffers 4 8k` and `limit_rate 40m` | The same, with the stream spilled to the proxy temp file. |
 
 ## Setup
 
@@ -36,11 +41,12 @@ Name resolution — `/etc/hosts`:
 ```
 127.0.0.2 local_origin1
 127.0.0.4 local_origin2
-127.0.0.3 sliced unsliced minuses min_unsliced
 ```
 
 `local_origin1` and `local_origin2` are the only origin names the harness uses;
-the origin's `127.0.0.3:3333` listener has no name here and is not reached.
+the origin's `127.0.0.3:3333` listener has no name here and is not reached. The
+fuzzer sends every edge request to `127.0.0.3:8081` with the virtual host in the
+`Host` header, so the cache host names need no entry.
 
 Origin object, 16777216 bytes (5 + 16777208 + 3), alphanumeric ASCII framed by
 `START` and `END`:
@@ -80,16 +86,22 @@ python3 multirange-test.py
 ## Behaviour
 
 Each iteration picks a cache virtual host, builds a `Range` header of 1–7
-subranges (closed; `x-`; `-x`; and reversed, `end-start` with end greater than
-start), requests origin and edge, then normalizes both bodies — every CRLF
-removed, and the generated boundary string replaced by the literal `BOUNDARY`
-wherever it appears — before comparing.
+subranges (closed; `x-`; `-x`; and descending, `high-low`), requests origin and
+edge, and compares:
 
-- Body mismatch: writes `/tmp/origin.txt` and `/tmp/cache.txt`, then exits.
+- 206 multipart on both: each body is split into parts by its own boundary, and
+  the two lists of (Content-Range, bytes) must be equal. The origin's preamble,
+  epilogue and header layout are not compared.
+- The edge's multipart body must also be exactly what nginx frames, CRLF
+  `--boundary` CRLF, header lines, CRLF CRLF, the bytes, and CRLF
+  `--boundary--` CRLF at the end, with each part's length as its Content-Range
+  says and a `Content-Length` equal to the body length.
+- 206 single range: the Content-Range headers and the bodies must be equal.
+- 200: the bodies must be equal.
+
+- Mismatch or framing error: prints the reason, writes `/tmp/origin.txt` and
+  `/tmp/cache.txt`, then exits.
 - Status pair not 200/200, 206/206 or 416/416: prints the pair and exits, with no
   artifacts.
 - Match: continues; on a coin flip per iteration, deletes 8 randomly chosen cache
   files under `/mnt/disk1/cache/multirange-splitted`.
-
-The edge must return the origin's status. Any split, including 200/206, is a
-failure.
